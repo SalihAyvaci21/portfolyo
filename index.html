@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Salih Tekin Ayvacı | Portfolyo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* --- GENEL AYARLAR --- */
+        :root {
+            --primary: #00ff88; /* Neon Yeşili */
+            --secondary: #7000ff; /* Neon Moru */
+            --bg: #0a0a0a;
+            --card-bg: #161616;
+            --text: #f0f0f0;
+            --text-muted: #a0a0a0;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Roboto', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            min-height: 100vh;
+        }
+
+        a { text-decoration: none; color: inherit; }
+
+        /* --- SOL MENÜ (SIDEBAR) --- */
+        .sidebar {
+            width: 260px;
+            background: rgba(20, 20, 20, 0.95);
+            border-right: 1px solid #333;
+            padding: 30px 20px;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100%;
+            backdrop-filter: blur(10px);
+            z-index: 10;
+        }
+
+        .profile-section {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .profile-img-container {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 15px;
+            position: relative;
+            border-radius: 50%;
+            padding: 3px;
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+        }
+
+        .profile-img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+            background-color: #333;
+            border: 3px solid var(--bg);
+        }
+
+        .name { font-size: 1.2rem; font-weight: bold; margin-bottom: 5px; }
+        .title { font-size: 0.85rem; color: var(--primary); letter-spacing: 1px; }
+
+        .nav-menu { flex: 1; }
+        
+        .nav-btn {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 12px 15px;
+            margin-bottom: 10px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .nav-btn:hover, .nav-btn.active {
+            background: linear-gradient(90deg, rgba(0, 255, 136, 0.1), transparent);
+            color: var(--primary);
+            border-left: 3px solid var(--primary);
+        }
+
+        .social-links {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .social-icon {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background: #222;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: 0.3s;
+        }
+
+        .social-icon:hover { background: var(--primary); color: #000; transform: translateY(-3px); }
+
+        /* --- SAĞ İÇERİK --- */
+        .main-content {
+            margin-left: 300px;
+            padding: 50px;
+            flex: 1;
+            max-width: 1200px;
+        }
+
+        section {
+            display: none;
+            animation: fadeIn 0.6s ease;
+        }
+
+        section.active { display: block; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1 { font-size: 2.5rem; margin-bottom: 10px; }
+        h2 { border-left: 4px solid var(--primary); padding-left: 15px; margin: 30px 0 20px; }
+        p { line-height: 1.6; color: var(--text-muted); }
+
+        /* Grid ve Kartlar */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid #333;
+            border-radius: 16px;
+            padding: 25px;
+            transition: 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            border-color: var(--primary);
+            box-shadow: 0 10px 30px rgba(0, 255, 136, 0.1);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 15px;
+        }
+
+        .tech-stack span {
+            font-size: 0.75rem;
+            background: #2a2a2a;
+            padding: 4px 10px;
+            border-radius: 20px;
+            color: var(--primary);
+            margin-right: 5px;
+        }
+
+        .repo-link { color: var(--text); font-size: 1.2rem; transition: 0.3s; }
+        .repo-link:hover { color: var(--primary); }
+
+        .skill-bar { margin-bottom: 15px; }
+        .skill-info { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 0.9rem; }
+        .progress-bg { width: 100%; height: 8px; background: #333; border-radius: 4px; overflow: hidden; }
+        .progress { height: 100%; background: linear-gradient(90deg, var(--primary), var(--secondary)); width: 0; transition: width 1s ease-in-out; }
+
+        /* --- OYUN ALANI CSS --- */
+        .game-container-split {
+            display: flex;
+            gap: 30px;
+            margin-top: 30px;
+        }
+        .game-list { flex: 1; max-width: 300px; }
+        .game-stage { flex: 2; }
+        
+        .game-card {
+            cursor: pointer;
+            margin-bottom: 15px;
+            border: 1px solid #333;
+        }
+        .game-card.active-game {
+            border-color: var(--primary);
+            background: #1a1a1a;
+        }
+        .game-card.locked { opacity: 0.5; cursor: not-allowed; }
+        
+        #gameCanvas {
+            background: #000;
+            border: 2px solid var(--primary);
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.2);
+            width: 100%; /* Responsive genişlik */
+            max-width: 800px;
+            cursor: crosshair;
+        }
+
+    </style>
+</head>
+<body>
+
+    <nav class="sidebar">
+        <div class="profile-section">
+            <div class="profile-img-container">
+                <img src="https://github.com/SalihAyvaci21.png" alt="Salih Tekin Ayvacı" class="profile-img">
+            </div>
+            <div class="name">Salih Tekin Ayvacı</div>
+            <div class="title">Gömülü Sistemler & FPGA</div>
+        </div>
+
+        <div class="nav-menu">
+            <div class="nav-btn active" onclick="showSection('about', this)">
+                <i class="fas fa-user-astronaut"></i> Hakkımda
+            </div>
+            <div class="nav-btn" onclick="showSection('projects', this)">
+                <i class="fas fa-code-branch"></i> Projelerim
+            </div>
+            <div class="nav-btn" onclick="showSection('games', this)">
+                <i class="fas fa-gamepad"></i> Oyun & Deney
+            </div>
+            <div class="nav-btn" onclick="showSection('iot', this)">
+                <i class="fas fa-network-wired"></i> IoT & Lab
+            </div>
+            <div class="nav-btn" onclick="showSection('contact', this)">
+                <i class="fas fa-envelope"></i> İletişim
+            </div>
+        </div>
+
+        <div class="social-links">
+            <a href="https://github.com/SalihAyvaci21" target="_blank" class="social-icon"><i class="fab fa-github"></i></a>
+            <a href="https://instagram.com/salih_ayvaci21" target="_blank" class="social-icon"><i class="fab fa-instagram"></i></a>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        
+        <section id="about" class="active">
+            <h1>Merhaba, Ben Salih 👋</h1>
+            <p>
+                Elektronik ve yazılım dünyasında sınırları zorlamayı seven bir geliştiriciyim. 
+                Özellikle <strong>FPGA (Sipeed Tang Nano, Gatemate)</strong>, <strong>Mikrodenetleyiciler (ESP32, Arduino)</strong> 
+                ve <strong>Sensör Entegrasyonları</strong> üzerine çalışıyorum.
+            </p>
+            <h2>🛠 Yeteneklerim</h2>
+            <div class="grid">
+                <div class="card">
+                    <h3>Yazılım Dilleri</h3>
+                    <div class="skill-bar">
+                        <div class="skill-info"><span>C / C++ (Embedded)</span><span>90%</span></div>
+                        <div class="progress-bg"><div class="progress" style="width: 90%"></div></div>
+                    </div>
+                    <div class="skill-bar">
+                        <div class="skill-info"><span>Verilog (FPGA)</span><span>75%</span></div>
+                        <div class="progress-bg"><div class="progress" style="width: 75%"></div></div>
+                    </div>
+                    <div class="skill-bar">
+                        <div class="skill-info"><span>JavaScript (Canvas)</span><span>65%</span></div>
+                        <div class="progress-bg"><div class="progress" style="width: 65%"></div></div>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3>Donanım & Araçlar</h3>
+                    <div class="tech-stack" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;">
+                        <span>Gowin Tang Nano 9K</span>
+                        <span>Gatemate CCGM1A1</span>
+                        <span>ESP32</span>
+                        <span>Raspberry Pi Pico</span>
+                        <span>Altium / KiCad</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="projects">
+            <h1>Öne Çıkan Projeler</h1>
+            <p>GitHub üzerinde geliştirdiğim bazı açık kaynak projeler.</p>
+            <div class="grid">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-microchip"></i> FPGA OLED Driver</h3>
+                        <a href="https://github.com/SalihAyvaci21" target="_blank" class="repo-link"><i class="fas fa-external-link-alt"></i></a>
+                    </div>
+                    <p>Gatemate ve Tang Nano FPGA kartları için Verilog ile yazılmış SSD1306 OLED ekran sürücüsü.</p>
+                    <div class="tech-stack"><span>Verilog</span><span>FPGA</span><span>I2C</span></div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-hourglass-half"></i> Dijital Kum Saati</h3>
+                        <a href="https://github.com/SalihAyvaci21" target="_blank" class="repo-link"><i class="fas fa-external-link-alt"></i></a>
+                    </div>
+                    <p>ADXL345 ivmeölçer ve 8x8 Dot Matrix ekranlar kullanılarak yapılmış interaktif kum saati.</p>
+                    <div class="tech-stack"><span>C++</span><span>Arduino Uno</span></div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-mobile-alt"></i> RFID Social Linker</h3>
+                        <a href="https://github.com/SalihAyvaci21" target="_blank" class="repo-link"><i class="fas fa-external-link-alt"></i></a>
+                    </div>
+                    <p>RC522 modülü ile kart okutulduğunda telefonda Instagram profilini açan IoT projesi.</p>
+                    <div class="tech-stack"><span>ESP32</span><span>RFID</span><span>WiFi</span></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="games">
+            <h1>Oyun & Deney Alanı</h1>
+            <p>Web teknolojileri ve JavaScript Canvas kullanılarak geliştirilmiş interaktif deneyler.</p>
+            
+            <div class="game-container-split">
+                <div class="game-list">
+                    <div class="card game-card active-game" onclick="loadGame('pong')">
+                        <h3><i class="fas fa-table-tennis"></i> Neon Pong</h3>
+                        <p style="font-size: 0.8rem;">Klasik Pong oyunu. Raketi yönetmek için farenizi kullanın.</p>
+                        <div class="tech-stack"><span>JS Canvas</span><span>Demo</span></div>
+                    </div>
+                    
+                    <div class="card game-card locked">
+                        <h3><i class="fas fa-ghost"></i> Yılan Oyunu (Snake)</h3>
+                        <p style="font-size: 0.8rem;">Yakında eklenecek. Geliştirme aşamasında.</p>
+                        <div class="tech-stack"><span style="color: #ff5555;"><i class="fas fa-lock"></i> Kilitli</span></div>
+                    </div>
+                </div>
+
+                <div class="game-stage">
+                    <canvas id="gameCanvas" width="800" height="500"></canvas>
+                    <div style="text-align: center; margin-top: 10px; color: var(--text-muted); font-size: 0.9rem;">
+                        <i class="fas fa-mouse-pointer"></i> Farenizi canvas üzerinde hareket ettirin.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="iot">
+            <h1>IoT Laboratuvarı</h1>
+            <p>Laboratuvarımda şu an üzerinde çalıştığım donanımlar ve test düzenekleri.</p>
+            <div class="grid">
+                <div class="card" style="border-left: 4px solid #ff0055;">
+                    <h3>🔥 Aktif Testler</h3>
+                    <ul style="padding-left: 20px; color: var(--text-muted);">
+                        <li>Sipeed Tang Nano 9K - ILA Debugging</li>
+                        <li>HC-SR04 Sensör Hassasiyet Testi</li>
+                    </ul>
+                </div>
+                <div class="card" style="border-left: 4px solid #00aaff;">
+                    <h3>📦 Envanter</h3>
+                    <ul style="padding-left: 20px; color: var(--text-muted);">
+                        <li>Sensörler: DHT11, ADXL345, RC522</li>
+                        <li>Ekranlar: SSD1306 OLED, 8x8 Matrix</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="contact">
+            <h1>İletişime Geç</h1>
+            <div class="card" style="text-align: center; max-width: 400px;">
+                <i class="fab fa-github" style="font-size: 3rem; margin-bottom: 10px;"></i>
+                <h3>GitHub'da Takip Et</h3>
+                <a href="https://github.com/SalihAyvaci21" target="_blank" style="display: inline-block; background: var(--primary); color: #000; padding: 10px 20px; border-radius: 5px; font-weight: bold; margin-top:10px;">Profile Git</a>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        // --- SAYFA GEÇİŞ JS ---
+        function showSection(sectionId, btnElement) {
+            document.querySelectorAll('section').forEach(sec => {
+                sec.classList.remove('active');
+            });
+            document.getElementById(sectionId).classList.add('active');
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            btnElement.classList.add('active');
+
+            // Eğer oyun sekmesi açıldıysa oyunu başlat
+            if(sectionId === 'games') {
+                initPongGame();
+            }
+        }
+
+        // --- BASİT PONG OYUNU JS (DEMO) ---
+        let canvas, ctx;
+        let ballX = 50, ballY = 50;
+        let ballSpeedX = 5, ballSpeedY = 4;
+        let paddleY = 250;
+        const PADDLE_HEIGHT = 100;
+        let gameRunning = false;
+
+        function initPongGame() {
+            if (gameRunning) return; // Zaten çalışıyorsa tekrar başlatma
+            
+            canvas = document.getElementById('gameCanvas');
+            ctx = canvas.getContext('2d');
+            gameRunning = true;
+
+            // Fare hareketini dinle
+            canvas.addEventListener('mousemove', function(evt) {
+                let rect = canvas.getBoundingClientRect();
+                let root = document.documentElement;
+                let mouseY = evt.clientY - rect.top - root.scrollTop;
+                paddleY = mouseY - (PADDLE_HEIGHT/2);
+            });
+
+            // Oyun döngüsünü başlat
+            setInterval(gameLoop, 1000/60); // 60 FPS
+        }
+
+        function gameLoop() {
+            if(!document.getElementById('games').classList.contains('active')) return; // Sekme aktif değilse durdur
+
+            // Hareketi Hesapla
+            ballX += ballSpeedX;
+            ballY += ballSpeedY;
+
+            // Duvarlara çarpma
+            if(ballX > canvas.width) ballSpeedX = -ballSpeedX;
+            if(ballX < 0) ballSpeedX = -ballSpeedX;
+            if(ballY > canvas.height) ballSpeedY = -ballSpeedY;
+            if(ballY < 0) ballSpeedY = -ballSpeedY;
+
+            // Rakete çarpma (Basit mantık)
+            if(ballX > canvas.width - 20 && ballY > paddleY && ballY < paddleY + PADDLE_HEIGHT) {
+                 ballSpeedX = -ballSpeedX;
+            }
+
+            // Çizim
+            // 1. Ekranı temizle
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // 2. Topu çiz
+            ctx.fillStyle = '#00ff88';
+            ctx.beginPath();
+            ctx.arc(ballX, ballY, 10, 0, Math.PI*2, true);
+            ctx.fill();
+
+            // 3. Raketi çiz
+            ctx.fillStyle = '#7000ff';
+            ctx.fillRect(canvas.width - 15, paddleY, 15, PADDLE_HEIGHT);
+        }
+
+        // Henüz yapılmamış oyunlar için uyarı
+        function loadGame(gameType) {
+            if(gameType === 'pong') {
+                // Zaten aktif
+            } else {
+                alert("Bu oyun henüz geliştirme aşamasında!");
+            }
+        }
+    </script>
+</body>
+</html>
