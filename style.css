@@ -135,3 +135,54 @@ p { line-height: 1.6; color: var(--text-muted); }
 .serial-btn.off { background: #ff0055; }
 .serial-btn:hover { opacity: 0.8; }
 .serial-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+/* EĞİTİM BLOKLARI TASARIMI */
+.code-block {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 15px;
+    border-radius: 10px;
+    color: white;
+    font-family: 'Segoe UI', sans-serif;
+    font-weight: bold;
+    box-shadow: 0 4px 0 rgba(0,0,0,0.2);
+    width: 100%;
+    max-width: 600px;
+    transition: transform 0.1s;
+}
+
+.code-block:active {
+    transform: translateY(4px);
+    box-shadow: none;
+}
+
+.block-input {
+    background: rgba(0,0,0,0.2);
+    border: none;
+    color: white;
+    padding: 5px;
+    border-radius: 5px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.block-input option {
+    background: #333;
+}
+
+.run-btn {
+    margin-left: auto; /* Sağa yasla */
+    background: white;
+    color: #333;
+    border: none;
+    padding: 5px 15px;
+    border-radius: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.run-btn:hover {
+    background: #f0f0f0;
+}
