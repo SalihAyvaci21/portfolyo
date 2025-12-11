@@ -12,7 +12,12 @@ async function fetchGithubRepos() {
     const username = 'SalihAyvaci21';
     const container = document.getElementById('repos-container');
     
-    // Seninle belirlediğimiz son açıklamalar
+    // GİZLENECEK PROJELER LİSTESİ (Buraya istemediklerini yazabilirsin)
+    const gizlenecekProjeler = [
+        "SalihAyvaci21",  // Profil repon
+        "portfolyo"       // Sitenin kendisi
+    ];
+
     const ozelAciklamalar = {
         "PixelJump": "Unity ve C# ile geliştirilmiş; prosedürel platform üretimi ve animasyon durum makinesi içeren 2D sonsuz koşu oyunu.",
         "fpga-verilog-examples": "Yosys ve Cologne Chip toolchain kullanılarak geliştirilmiş temel Verilog FPGA uygulamaları (LED chase, clock divider).",
@@ -29,9 +34,14 @@ async function fetchGithubRepos() {
         const response = await fetch(`https://api.github.com/users/${username}/repos?sort=pushed&direction=desc`);
         const repos = await response.json();
         container.innerHTML = ''; 
+        
         repos.forEach(repo => {
+            // FİLTRELEME: Eğer repo ismi gizlenecekler listesindeyse, bunu atla (return)
+            if (gizlenecekProjeler.includes(repo.name)) return;
+
             const lang = repo.language ? repo.language : 'Diğer';
             const desc = ozelAciklamalar[repo.name] || repo.description || 'Proje detayı yükleniyor...';
+            
             const cardHTML = `<div class="card"><div class="card-header"><h3><i class="fas fa-code-branch"></i> ${repo.name}</h3><a href="${repo.html_url}" target="_blank" class="repo-link"><i class="fas fa-external-link-alt"></i></a></div><p>${desc}</p><div class="tech-stack"><span class="tech-tag">${lang}</span><span class="tech-tag"><i class="far fa-star"></i> ${repo.stargazers_count}</span></div></div>`;
             container.innerHTML += cardHTML;
         });
@@ -60,14 +70,11 @@ async function connectSerial() {
         writer = textEncoder.writable.getWriter();
         
         logConsole("✅ Arduino Bağlandı! Blokları kullanabilirsiniz.");
-        
-        // BUTONLARI GÜNCELLE
-        document.getElementById('btnConnect').style.display = 'none'; // Bağlan'ı gizle
-        document.getElementById('btnDisconnect').style.display = 'inline-block'; // Kes'i göster
+        document.getElementById('btnConnect').style.display = 'none'; 
+        document.getElementById('btnDisconnect').style.display = 'inline-block'; 
         
     } catch (err) {
         logConsole("❌ Hata: " + err);
-        // Hata durumunda butonları eski haline getir
         document.getElementById('btnConnect').style.display = 'inline-block';
         document.getElementById('btnDisconnect').style.display = 'none';
     }
@@ -75,83 +82,40 @@ async function connectSerial() {
 
 async function disconnectSerial() {
     try {
-        if (writer) {
-            await writer.releaseLock();
-            writer = null;
-        }
-        if (port) {
-            await port.close();
-            port = null;
-        }
+        if (writer) { await writer.releaseLock(); writer = null; }
+        if (port) { await port.close(); port = null; }
         logConsole("🔌 Bağlantı Kesildi.");
-    } catch (err) {
-        logConsole("⚠️ Kesilirken hata oldu, sayfayı yenileyin.");
-    }
+    } catch (err) { logConsole("⚠️ Hata oluştu, sayfayı yenileyin."); }
     
-    // BUTONLARI ESKİ HALİNE GETİR
     document.getElementById('btnConnect').style.display = 'inline-block';
     document.getElementById('btnDisconnect').style.display = 'none';
     
-    // Blink varsa durdur
-    if(blinkInterval) {
-        clearInterval(blinkInterval);
-        blinkInterval = null;
-    }
+    if(blinkInterval) { clearInterval(blinkInterval); blinkInterval = null; }
 }
 
 async function sendCommand(cmd) {
-    if (!writer) {
-        logConsole("⚠️ Önce cihazı bağlayın!");
-        return;
-    }
-    try {
-        await writer.write(cmd + "\n");
-        logConsole("📤 Gönderildi: " + cmd);
-    } catch (err) {
-        logConsole("❌ Gönderme Hatası: " + err);
-        disconnectSerial(); // Hata varsa bağlantıyı düşür
-    }
+    if (!writer) { logConsole("⚠️ Önce cihazı bağlayın!"); return; }
+    try { await writer.write(cmd + "\n"); logConsole("📤 Gönderildi: " + cmd); } 
+    catch (err) { logConsole("❌ Hata: " + err); disconnectSerial(); }
 }
 
-// Blok Çalıştırma Fonksiyonu
 function runBlock(action) {
-    if (action === 'ON') {
-        let pin = document.getElementById('pinSelectOn').value;
-        sendCommand(`PIN:${pin}:1`);
-    } 
-    else if (action === 'OFF') {
-        let pin = document.getElementById('pinSelectOff').value;
-        sendCommand(`PIN:${pin}:0`);
-    }
+    if (action === 'ON') { let pin = document.getElementById('pinSelectOn').value; sendCommand(`PIN:${pin}:1`); } 
+    else if (action === 'OFF') { let pin = document.getElementById('pinSelectOff').value; sendCommand(`PIN:${pin}:0`); }
 }
 
-// Blink Fonksiyonu
 function toggleBlink() {
-    if (blinkInterval) {
-        clearInterval(blinkInterval);
-        blinkInterval = null;
-        logConsole("⏹️ Blink Durduruldu.");
-    } else {
-        // Bağlantı yoksa uyarı ver
-        if(!writer) {
-            logConsole("⚠️ Önce Arduino'yu bağlayın!");
-            return;
-        }
-        
-        let pin = document.getElementById('pinSelectBlink').value;
-        let state = 1;
+    if (blinkInterval) { clearInterval(blinkInterval); blinkInterval = null; logConsole("⏹️ Blink Durduruldu."); } 
+    else {
+        if(!writer) { logConsole("⚠️ Önce Arduino'yu bağlayın!"); return; }
+        let pin = document.getElementById('pinSelectBlink').value; let state = 1;
         logConsole("▶️ Blink Başlatıldı (Pin " + pin + ")");
-        
-        blinkInterval = setInterval(() => {
-            sendCommand(`PIN:${pin}:${state}`);
-            state = (state === 1) ? 0 : 1;
-        }, 1000);
+        blinkInterval = setInterval(() => { sendCommand(`PIN:${pin}:${state}`); state = (state === 1) ? 0 : 1; }, 1000);
     }
 }
 
 function logConsole(msg) {
     const consoleDiv = document.getElementById('serialConsole');
-    // Yeni mesajı en üste ekle
     consoleDiv.innerHTML = `<div>> ${msg}</div>` + consoleDiv.innerHTML;
 }
 
