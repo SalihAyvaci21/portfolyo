@@ -50,6 +50,7 @@
             border-radius: 50%;
             padding: 3px;
             background: linear-gradient(45deg, var(--primary), var(--secondary));
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.3); /* Profil resmi parlaması */
         }
 
         .profile-img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: #333; }
@@ -61,11 +62,11 @@
             display: flex; align-items: center; gap: 15px; padding: 12px 15px; margin-bottom: 10px;
             border-radius: 12px; cursor: pointer; color: var(--text-muted); font-weight: 500; transition: 0.3s;
         }
-        .nav-btn:hover, .nav-btn.active { background: #1a1a1a; color: var(--primary); border-left: 3px solid var(--primary); }
+        .nav-btn:hover, .nav-btn.active { background: #1a1a1a; color: var(--primary); border-left: 3px solid var(--primary); box-shadow: 0 0 10px rgba(0, 255, 136, 0.1); }
 
         .social-links { display: flex; justify-content: center; gap: 15px; margin-top: 20px; }
         .social-icon { width: 35px; height: 35px; border-radius: 50%; background: #222; display: flex; align-items: center; justify-content: center; transition: 0.3s; }
-        .social-icon:hover { background: var(--primary); color: #000; }
+        .social-icon:hover { background: var(--primary); color: #000; transform: translateY(-3px); box-shadow: 0 0 10px var(--primary); }
 
         /* --- MAIN CONTENT --- */
         .main-content { margin-left: 300px; padding: 50px; flex: 1; max-width: 1200px; }
@@ -74,7 +75,7 @@
         section.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
-        h1 { font-size: 2.5rem; margin-bottom: 10px; }
+        h1 { font-size: 2.5rem; margin-bottom: 10px; text-shadow: 0 0 10px rgba(0,255,136,0.2); }
         h2 { border-left: 4px solid var(--primary); padding-left: 15px; margin: 30px 0 20px; }
         p { line-height: 1.6; color: var(--text-muted); }
 
@@ -85,17 +86,33 @@
             background: var(--card-bg); border: 1px solid #333; border-radius: 16px; padding: 25px;
             transition: 0.3s; position: relative; display: flex; flex-direction: column; height: 100%;
         }
-        .card:hover { transform: translateY(-5px); border-color: var(--primary); box-shadow: 0 10px 30px rgba(0, 255, 136, 0.1); }
+        .card:hover { transform: translateY(-5px); border-color: var(--primary); box-shadow: 0 10px 30px rgba(0, 255, 136, 0.15); }
 
         .card-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px; }
         .card h3 { margin: 0; color: #fff; font-size: 1.2rem; }
         .card p { flex-grow: 1; font-size: 0.9rem; margin-bottom: 15px; }
         
+        /* Teknoloji Etiketleri (Güzelleştirildi) */
         .tech-stack { margin-top: auto; display: flex; flex-wrap: wrap; gap: 8px; }
-        .tech-tag { font-size: 0.75rem; background: #2a2a2a; padding: 4px 10px; border-radius: 20px; color: var(--primary); border: 1px solid #333; }
+        .tech-tag { 
+            font-size: 0.75rem; 
+            background: #222; 
+            padding: 5px 12px; 
+            border-radius: 20px; 
+            color: var(--primary); 
+            border: 1px solid #333; 
+            transition: 0.3s;
+            cursor: default;
+        }
+        .tech-tag:hover {
+            background: rgba(0, 255, 136, 0.1);
+            border-color: var(--primary);
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.2);
+            transform: scale(1.05);
+        }
 
         .repo-link { color: var(--text-muted); font-size: 1.2rem; transition: 0.3s; }
-        .repo-link:hover { color: var(--primary); }
+        .repo-link:hover { color: var(--primary); text-shadow: 0 0 10px var(--primary); }
 
         .loading-text { text-align: center; padding: 20px; color: var(--text-muted); font-style: italic; }
 
@@ -109,7 +126,7 @@
         .game-container-split { display: flex; gap: 30px; margin-top: 30px; flex-wrap: wrap;}
         .game-list { flex: 1; min-width: 250px; }
         .game-stage { flex: 2; min-width: 300px;}
-        #gameCanvas { background: #000; border: 2px solid var(--primary); border-radius: 10px; width: 100%; max-width: 800px; }
+        #gameCanvas { background: #000; border: 2px solid var(--primary); border-radius: 10px; width: 100%; max-width: 800px; box-shadow: 0 0 20px rgba(0,255,136,0.1); }
         .game-card { cursor: pointer; margin-bottom: 15px; border: 1px solid #333; }
         .game-card.active-game { border-color: var(--primary); background: #1a1a1a; }
     </style>
@@ -133,6 +150,7 @@
         <div class="social-links">
             <a href="https://github.com/SalihAyvaci21" target="_blank" class="social-icon"><i class="fab fa-github"></i></a>
             <a href="https://instagram.com/salih_ayvaci21" target="_blank" class="social-icon"><i class="fab fa-instagram"></i></a>
+            <a href="https://linkedin.com/in/salih-tekin-ayvaci" target="_blank" class="social-icon"><i class="fab fa-linkedin-in"></i></a>
         </div>
     </nav>
 
@@ -141,23 +159,28 @@
         <section id="about" class="active">
             <h1>Merhaba, Ben Salih 👋</h1>
             <p>Elektronik ve yazılım dünyasında sınırları zorlamayı seven bir geliştiriciyim. Özellikle <strong>FPGA</strong>, <strong>Mikrodenetleyiciler</strong> ve <strong>Sensör Entegrasyonları</strong> üzerine çalışıyorum.</p>
+            
             <h2>🛠 Yeteneklerim</h2>
             <div class="grid">
                 <div class="card">
-                    <h3>Yazılım</h3>
+                    <h3>Yazılım Dilleri</h3>
                     <div style="margin-top:15px;">
-                        <div class="skill-bar"><div class="skill-info"><span>C / C++</span><span>90%</span></div><div class="progress-bg"><div class="progress" style="width: 90%"></div></div></div>
-                        <div class="skill-bar"><div class="skill-info"><span>Verilog</span><span>75%</span></div><div class="progress-bg"><div class="progress" style="width: 75%"></div></div></div>
-                        <div class="skill-bar"><div class="skill-info"><span>Lua</span><span>60%</span></div><div class="progress-bg"><div class="progress" style="width: 60%"></div></div></div>
+                        <div class="skill-bar"><div class="skill-info"><span>C / C++ (Embedded)</span><span>90%</span></div><div class="progress-bg"><div class="progress" style="width: 90%"></div></div></div>
+                        <div class="skill-bar"><div class="skill-info"><span>Verilog / VHDL</span><span>75%</span></div><div class="progress-bg"><div class="progress" style="width: 75%"></div></div></div>
+                        <div class="skill-bar"><div class="skill-info"><span>Lua / Python</span><span>60%</span></div><div class="progress-bg"><div class="progress" style="width: 60%"></div></div></div>
                     </div>
                 </div>
+                
                 <div class="card">
-                    <h3>Donanım</h3>
+                    <h3>Donanım & Kartlar</h3>
                     <div class="tech-stack" style="margin-top:15px;">
                         <span class="tech-tag">Tang Nano 9K</span>
                         <span class="tech-tag">Gatemate CCGM1A1</span>
-                        <span class="tech-tag">ESP32</span>
+                        <span class="tech-tag">STM32</span>
+                        <span class="tech-tag">Raspberry Pi 4</span>
                         <span class="tech-tag">Raspberry Pi Pico</span>
+                        <span class="tech-tag">Arduino Uno/Mega</span>
+                        <span class="tech-tag">ESP32</span>
                     </div>
                 </div>
             </div>
@@ -202,6 +225,7 @@
                     <ul style="padding-left: 20px; color: var(--text-muted); margin-top:10px;">
                         <li>Sensörler: DHT11, ADXL345, RC522</li>
                         <li>Ekranlar: SSD1306 OLED, 8x8 Matrix</li>
+                        <li>Kartlar: STM32, Arduino, RPi Pico</li>
                     </ul>
                 </div>
             </div>
@@ -224,17 +248,28 @@
             const username = 'SalihAyvaci21';
             const container = document.getElementById('repos-container');
             
+            // GITHUB REPO AÇIKLAMALARI (GÜNCEL)
+            const ozelAciklamalar = {
+                "PixelJump": "Unity ve C# ile geliştirilmiş; prosedürel platform üretimi ve animasyon durum makinesi içeren 2D sonsuz koşu oyunu.",
+                "fpga-verilog-examples": "Yosys ve Cologne Chip toolchain kullanılarak geliştirilmiş temel Verilog FPGA uygulamaları (LED chase, clock divider).",
+                "USB-Hub-PD-Controller": "USB-C PD desteği sunan; TUSB8044 kontrolcüsü ile 4 portlu (USB-A/C, FTDI, ST-Link) PCB tasarımı.",
+                "Verilog-Full-Adder-8bit": "Verilog HDL ile tasarlanmış; clock sinyaliyle senkronize bit-bit toplama yapan öğretici 8-bit tam toplayıcı modülü.",
+                "STM32F405-Flight-Controller": "STM32F405 MCU tabanlı; dahili ST-LINK, MPU9250 IMU ve GPS entegrasyonuna sahip uçuş kontrol kartı.",
+                "AC-DC-Power-Supply": "115-250V AC girişten 24V 5A izole DC çıkış sağlayan Half-Bridge topolojili güç kaynağı tasarımı.",
+                "Drone-Power-Distribution": "Drone ve atölye için LM2595 ve LM7805 regülatörlü, asit baskı üretimine uygun güç dağıtım kartı.",
+                "ESCTasarim": "ATmega328P ve IR2103 tabanlı, sandviç PCB yapısına (2x2 katman) sahip, 6S 40A test edilmiş BLDC motor sürücüsü.",
+                "button_led_toggle": "FPGA üzerinde buton gürültüsünü filtreleyen Debounce IP Core ile geliştirilmiş LED toggle uygulaması."
+            };
+
             try {
-                // Github API'den repoları çek (En son güncellenene göre sırala)
                 const response = await fetch(`https://api.github.com/users/${username}/repos?sort=pushed&direction=desc`);
                 const repos = await response.json();
 
-                container.innerHTML = ''; // Yükleniyor yazısını temizle
+                container.innerHTML = ''; 
 
                 repos.forEach(repo => {
-                    // Sadece açıklama eklenmiş repolara özel ikon atayabiliriz
                     const lang = repo.language ? repo.language : 'Diğer';
-                    const desc = repo.description ? repo.description : 'Açıklama girilmemiş.';
+                    const desc = ozelAciklamalar[repo.name] || repo.description || 'Bu proje için henüz detaylı açıklama eklenmedi.';
                     
                     const cardHTML = `
                         <div class="card">
@@ -254,7 +289,7 @@
                 });
 
             } catch (error) {
-                container.innerHTML = `<p style="color:red;">Projeler yüklenirken hata oluştu. İnternet bağlantını kontrol et.</p>`;
+                container.innerHTML = `<p style="color:red;">Projeler yüklenirken hata oluştu.</p>`;
                 console.error(error);
             }
         }
@@ -278,34 +313,25 @@
                 
                 ctx.fillStyle = 'black';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
-                
-                // Top
                 ctx.fillStyle = '#00ff88';
                 ctx.beginPath(); ctx.arc(ballX, ballY, 8, 0, Math.PI*2); ctx.fill();
-                
-                // Raket
                 ctx.fillStyle = '#7000ff';
                 ctx.fillRect(canvas.width - 15, paddleY, 15, 100);
 
                 ballX += dx; ballY += dy;
                 if(ballX < 0) dx = -dx;
                 if(ballY < 0 || ballY > canvas.height) dy = -dy;
-                
-                // Çarpışma
                 if(ballX > canvas.width - 25 && ballY > paddleY && ballY < paddleY + 100) {
                     dx = -dx;
                 }
-                if(ballX > canvas.width) { ballX = 50; ballY = 50; } // Reset
-
+                if(ballX > canvas.width) { ballX = 50; ballY = 50; } 
                 requestAnimationFrame(draw);
             }
             gameActive = true;
             draw();
         }
 
-        // Sayfa açılınca repoları çek
         window.onload = fetchGithubRepos;
-
     </script>
 </body>
 </html>
