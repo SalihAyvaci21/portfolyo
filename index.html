@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Salih Tekin Ayvacı | Portfolyo</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -21,7 +20,7 @@
             <div class="nav-btn active" onclick="showSection('about', this)"><i class="fas fa-user-astronaut"></i> Hakkımda</div>
             <div class="nav-btn" onclick="showSection('projects', this)"><i class="fas fa-code-branch"></i> Projelerim</div>
             <div class="nav-btn" onclick="showSection('games', this)"><i class="fas fa-gamepad"></i> Oyun Alanı</div>
-            <div class="nav-btn" onclick="showSection('iot', this)"><i class="fas fa-network-wired"></i> IoT Lab</div>
+            <div class="nav-btn" onclick="showSection('iot', this)"><i class="fas fa-robot"></i> Robotik Lab</div>
         </div>
 
         <div class="social-links">
@@ -42,8 +41,8 @@
                 <div class="card">
                     <h3>Yazılım & Oyun</h3>
                     <div style="margin-top:15px;">
-                        <div class="skill-bar"><div class="skill-info"><span>C / C++</span><span>90%</span></div><div class="progress-bg"><div class="progress" style="width: 90%"></div></div></div>
-                        <div class="skill-bar"><div class="skill-info"><span>Verilog</span><span>75%</span></div><div class="progress-bg"><div class="progress" style="width: 75%"></div></div></div>
+                        <div class="skill-bar"><div class="skill-info"><span>C / C++ (Embedded)</span><span>90%</span></div><div class="progress-bg"><div class="progress" style="width: 90%"></div></div></div>
+                        <div class="skill-bar"><div class="skill-info"><span>Verilog / VHDL</span><span>75%</span></div><div class="progress-bg"><div class="progress" style="width: 75%"></div></div></div>
                         <div class="skill-bar"><div class="skill-info"><span>Lua / Unity</span><span>60%</span></div><div class="progress-bg"><div class="progress" style="width: 60%"></div></div></div>
                     </div>
                 </div>
@@ -65,7 +64,9 @@
 
         <section id="projects">
             <h1>Tüm Projelerim</h1>
-            <div id="repos-container" class="grid"><div class="loading-text">GitHub'dan veriler çekiliyor...</div></div>
+            <div id="repos-container" class="grid">
+                <div class="loading-text">GitHub'dan veriler çekiliyor...</div>
+            </div>
         </section>
 
         <section id="games">
@@ -94,12 +95,11 @@
             </div>
         </section>
 
-<section id="iot">
+        <section id="iot">
             <h1>🤖 Robotik Kodlama Laboratuvarı</h1>
             <p>Arduino'nuzu bağlayın ve kod yazmadan bloklarla kontrol edin!</p>
             
             <div class="grid">
-                
                 <div class="card" style="grid-column: span 1 / -1; border-color: #00ff88;">
                     <div class="card-header">
                         <h3><i class="fas fa-gamepad"></i> Blok Kontrol Paneli</h3>
@@ -147,31 +147,12 @@
                             <span>LED'ini yakıp söndür</span>
                             <button class="run-btn" onclick="toggleBlink()">BAŞLAT / DURDUR</button>
                         </div>
-
                     </div>
 
                     <div id="serialConsole" class="serial-console" style="margin-top:20px; height:100px;">
-                        > Hazır. Lütfen önce "Arduino'yu Bağla" butonuna basın.
-                        <br>> Not: Arduino içinde "Salih Eğitim Firmware" yüklü olmalıdır.
+                        > Hazır. Lütfen önce "Arduino'yu Bağla" butonuna basın.<br>
+                        > Not: Arduino içinde "Salih Eğitim Firmware" yüklü olmalıdır.
                     </div>
-                </div>
-            </div>
-        </section>
-
-                <div class="card" style="border-left: 4px solid #ff0055;">
-                    <h3>🔥 Aktif Testler</h3>
-                    <ul style="padding-left: 20px; color: var(--text-muted); margin-top:10px;">
-                        <li>Sipeed Tang Nano 9K - ILA</li>
-                        <li>HC-SR04 Sensör Testi</li>
-                    </ul>
-                </div>
-                <div class="card" style="border-left: 4px solid #00aaff;">
-                    <h3>📦 Envanter</h3>
-                    <ul style="padding-left: 20px; color: var(--text-muted); margin-top:10px;">
-                        <li>Sensörler: DHT11, ADXL345, RC522</li>
-                        <li>Ekranlar: SSD1306 OLED, 8x8 Matrix</li>
-                        <li>Kartlar: STM32, Arduino, RPi Pico</li>
-                    </ul>
                 </div>
             </div>
         </section>
@@ -181,4 +162,3 @@
     <script src="script.js"></script>
 </body>
 </html>
-
