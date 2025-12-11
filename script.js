@@ -40,7 +40,7 @@ async function fetchGithubRepos() {
 window.onload = fetchGithubRepos;
 
 // ==========================================
-// WEB SERIAL API (BLOK KODLAMA MODU)
+// WEB SERIAL API (DÜZELTİLMİŞ & EĞİTİM MODU)
 // ==========================================
 let port;
 let writer;
@@ -54,14 +54,48 @@ async function connectSerial() {
     try {
         port = await navigator.serial.requestPort();
         await port.open({ baudRate: 115200 });
+        
         const textEncoder = new TextEncoderStream();
         const writableStreamClosed = textEncoder.readable.pipeTo(port.writable);
         writer = textEncoder.writable.getWriter();
-        logConsole("✅ Arduino Bağlandı! Blokları sürükleyip çalıştırabilirsiniz.");
-        document.getElementById('btnConnect').innerText = "Bağlandı ✅";
-        document.getElementById('btnConnect').classList.add('on');
+        
+        logConsole("✅ Arduino Bağlandı! Blokları kullanabilirsiniz.");
+        
+        // BUTONLARI GÜNCELLE
+        document.getElementById('btnConnect').style.display = 'none'; // Bağlan'ı gizle
+        document.getElementById('btnDisconnect').style.display = 'inline-block'; // Kes'i göster
+        
     } catch (err) {
         logConsole("❌ Hata: " + err);
+        // Hata durumunda butonları eski haline getir
+        document.getElementById('btnConnect').style.display = 'inline-block';
+        document.getElementById('btnDisconnect').style.display = 'none';
+    }
+}
+
+async function disconnectSerial() {
+    try {
+        if (writer) {
+            await writer.releaseLock();
+            writer = null;
+        }
+        if (port) {
+            await port.close();
+            port = null;
+        }
+        logConsole("🔌 Bağlantı Kesildi.");
+    } catch (err) {
+        logConsole("⚠️ Kesilirken hata oldu, sayfayı yenileyin.");
+    }
+    
+    // BUTONLARI ESKİ HALİNE GETİR
+    document.getElementById('btnConnect').style.display = 'inline-block';
+    document.getElementById('btnDisconnect').style.display = 'none';
+    
+    // Blink varsa durdur
+    if(blinkInterval) {
+        clearInterval(blinkInterval);
+        blinkInterval = null;
     }
 }
 
@@ -70,8 +104,13 @@ async function sendCommand(cmd) {
         logConsole("⚠️ Önce cihazı bağlayın!");
         return;
     }
-    await writer.write(cmd + "\n");
-    logConsole("📤 Gönderildi: " + cmd);
+    try {
+        await writer.write(cmd + "\n");
+        logConsole("📤 Gönderildi: " + cmd);
+    } catch (err) {
+        logConsole("❌ Gönderme Hatası: " + err);
+        disconnectSerial(); // Hata varsa bağlantıyı düşür
+    }
 }
 
 // Blok Çalıştırma Fonksiyonu
@@ -93,9 +132,16 @@ function toggleBlink() {
         blinkInterval = null;
         logConsole("⏹️ Blink Durduruldu.");
     } else {
+        // Bağlantı yoksa uyarı ver
+        if(!writer) {
+            logConsole("⚠️ Önce Arduino'yu bağlayın!");
+            return;
+        }
+        
         let pin = document.getElementById('pinSelectBlink').value;
         let state = 1;
         logConsole("▶️ Blink Başlatıldı (Pin " + pin + ")");
+        
         blinkInterval = setInterval(() => {
             sendCommand(`PIN:${pin}:${state}`);
             state = (state === 1) ? 0 : 1;
@@ -105,6 +151,7 @@ function toggleBlink() {
 
 function logConsole(msg) {
     const consoleDiv = document.getElementById('serialConsole');
+    // Yeni mesajı en üste ekle
     consoleDiv.innerHTML = `<div>> ${msg}</div>` + consoleDiv.innerHTML;
 }
 
