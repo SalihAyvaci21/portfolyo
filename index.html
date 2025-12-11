@@ -50,7 +50,7 @@
             border-radius: 50%;
             padding: 3px;
             background: linear-gradient(45deg, var(--primary), var(--secondary));
-            box-shadow: 0 0 20px rgba(0, 255, 136, 0.3); /* Profil resmi parlaması */
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
         }
 
         .profile-img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: #333; }
@@ -92,28 +92,15 @@
         .card h3 { margin: 0; color: #fff; font-size: 1.2rem; }
         .card p { flex-grow: 1; font-size: 0.9rem; margin-bottom: 15px; }
         
-        /* Teknoloji Etiketleri (Güzelleştirildi) */
         .tech-stack { margin-top: auto; display: flex; flex-wrap: wrap; gap: 8px; }
         .tech-tag { 
-            font-size: 0.75rem; 
-            background: #222; 
-            padding: 5px 12px; 
-            border-radius: 20px; 
-            color: var(--primary); 
-            border: 1px solid #333; 
-            transition: 0.3s;
-            cursor: default;
+            font-size: 0.75rem; background: #222; padding: 5px 12px; border-radius: 20px; 
+            color: var(--primary); border: 1px solid #333; transition: 0.3s; cursor: default;
         }
-        .tech-tag:hover {
-            background: rgba(0, 255, 136, 0.1);
-            border-color: var(--primary);
-            box-shadow: 0 0 10px rgba(0, 255, 136, 0.2);
-            transform: scale(1.05);
-        }
+        .tech-tag:hover { background: rgba(0, 255, 136, 0.1); border-color: var(--primary); box-shadow: 0 0 10px rgba(0, 255, 136, 0.2); transform: scale(1.05); }
 
         .repo-link { color: var(--text-muted); font-size: 1.2rem; transition: 0.3s; }
         .repo-link:hover { color: var(--primary); text-shadow: 0 0 10px var(--primary); }
-
         .loading-text { text-align: center; padding: 20px; color: var(--text-muted); font-style: italic; }
 
         /* SKILL BARS */
@@ -124,11 +111,23 @@
 
         /* OYUN ALANI */
         .game-container-split { display: flex; gap: 30px; margin-top: 30px; flex-wrap: wrap;}
-        .game-list { flex: 1; min-width: 250px; }
-        .game-stage { flex: 2; min-width: 300px;}
-        #gameCanvas { background: #000; border: 2px solid var(--primary); border-radius: 10px; width: 100%; max-width: 800px; box-shadow: 0 0 20px rgba(0,255,136,0.1); }
-        .game-card { cursor: pointer; margin-bottom: 15px; border: 1px solid #333; }
-        .game-card.active-game { border-color: var(--primary); background: #1a1a1a; }
+        .game-list { flex: 1; min-width: 200px; }
+        .game-stage { flex: 3; min-width: 300px; display:flex; flex-direction:column; align-items:center;}
+        
+        #gameCanvas { 
+            background: #000; 
+            border: 2px solid var(--primary); 
+            border-radius: 10px; 
+            box-shadow: 0 0 20px rgba(0,255,136,0.1);
+            display: block;
+        }
+        
+        .game-card { cursor: pointer; margin-bottom: 15px; border: 1px solid #333; padding: 15px;}
+        .game-card:hover { background: #222; }
+        .game-card.active-game { border-color: var(--primary); background: #1a1a1a; box-shadow: 0 0 10px rgba(0,255,136,0.2); }
+        .game-controls { margin-top: 10px; color: #aaa; font-size: 0.9rem; text-align: center;}
+        .score-board { font-size: 1.5rem; color: var(--primary); margin-bottom: 10px; font-weight: bold;}
+
     </style>
 </head>
 <body>
@@ -163,11 +162,11 @@
             <h2>🛠 Yeteneklerim</h2>
             <div class="grid">
                 <div class="card">
-                    <h3>Yazılım Dilleri</h3>
+                    <h3>Yazılım & Oyun</h3>
                     <div style="margin-top:15px;">
-                        <div class="skill-bar"><div class="skill-info"><span>C / C++ (Embedded)</span><span>90%</span></div><div class="progress-bg"><div class="progress" style="width: 90%"></div></div></div>
-                        <div class="skill-bar"><div class="skill-info"><span>Verilog / VHDL</span><span>75%</span></div><div class="progress-bg"><div class="progress" style="width: 75%"></div></div></div>
-                        <div class="skill-bar"><div class="skill-info"><span>Lua / Python</span><span>60%</span></div><div class="progress-bg"><div class="progress" style="width: 60%"></div></div></div>
+                        <div class="skill-bar"><div class="skill-info"><span>C / C++</span><span>90%</span></div><div class="progress-bg"><div class="progress" style="width: 90%"></div></div></div>
+                        <div class="skill-bar"><div class="skill-info"><span>Verilog</span><span>75%</span></div><div class="progress-bg"><div class="progress" style="width: 75%"></div></div></div>
+                        <div class="skill-bar"><div class="skill-info"><span>Lua / Unity</span><span>60%</span></div><div class="progress-bg"><div class="progress" style="width: 60%"></div></div></div>
                     </div>
                 </div>
                 
@@ -188,24 +187,31 @@
 
         <section id="projects">
             <h1>Tüm Projelerim</h1>
-            <p>GitHub hesabımdaki projeler otomatik olarak aşağıda listelenmektedir.</p>
-            
-            <div id="repos-container" class="grid">
-                <div class="loading-text">GitHub'dan veriler çekiliyor...</div>
-            </div>
+            <div id="repos-container" class="grid"><div class="loading-text">GitHub'dan veriler çekiliyor...</div></div>
         </section>
 
         <section id="games">
-            <h1>Oyun & Deney</h1>
+            <h1>Mini Arcade</h1>
             <div class="game-container-split">
                 <div class="game-list">
-                    <div class="card game-card active-game" onclick="initPongGame()">
-                        <h3><i class="fas fa-table-tennis"></i> Neon Pong</h3>
-                        <p style="font-size:0.8rem; color:#aaa;">Fare ile raketi yönet.</p>
+                    <div class="card game-card" onclick="startGame('snake', this)">
+                        <h3><i class="fas fa-worm"></i> Cyber Snake</h3>
+                        <p style="font-size:0.8rem; color:#aaa;">Klasik yılan oyunu.</p>
+                    </div>
+                    <div class="card game-card" onclick="startGame('tetris', this)">
+                        <h3><i class="fas fa-cubes"></i> Neon Blocks</h3>
+                        <p style="font-size:0.8rem; color:#aaa;">Blok yerleştirmece.</p>
+                    </div>
+                    <div class="card game-card" onclick="startGame('maze', this)">
+                        <h3><i class="fas fa-ghost"></i> Maze Chase</h3>
+                        <p style="font-size:0.8rem; color:#aaa;">Labirent kovalamaca.</p>
                     </div>
                 </div>
+
                 <div class="game-stage">
-                    <canvas id="gameCanvas" width="600" height="400"></canvas>
+                    <div id="scoreBoard" class="score-board">SKOR: 0</div>
+                    <canvas id="gameCanvas" width="400" height="400"></canvas>
+                    <div id="gameControls" class="game-controls">Oynamak için bir oyun seçin</div>
                 </div>
             </div>
         </section>
@@ -240,7 +246,7 @@
             document.getElementById(id).classList.add('active');
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            if(id === 'games') initPongGame();
+            if(id !== 'games') stopCurrentGame(); 
         }
 
         // --- GITHUB REPO ÇEKME (API) ---
@@ -248,7 +254,6 @@
             const username = 'SalihAyvaci21';
             const container = document.getElementById('repos-container');
             
-            // GITHUB REPO AÇIKLAMALARI (GÜNCEL)
             const ozelAciklamalar = {
                 "PixelJump": "Unity ve C# ile geliştirilmiş; prosedürel platform üretimi ve animasyon durum makinesi içeren 2D sonsuz koşu oyunu.",
                 "fpga-verilog-examples": "Yosys ve Cologne Chip toolchain kullanılarak geliştirilmiş temel Verilog FPGA uygulamaları (LED chase, clock divider).",
@@ -264,74 +269,371 @@
             try {
                 const response = await fetch(`https://api.github.com/users/${username}/repos?sort=pushed&direction=desc`);
                 const repos = await response.json();
-
                 container.innerHTML = ''; 
-
                 repos.forEach(repo => {
                     const lang = repo.language ? repo.language : 'Diğer';
                     const desc = ozelAciklamalar[repo.name] || repo.description || 'Bu proje için henüz detaylı açıklama eklenmedi.';
-                    
-                    const cardHTML = `
-                        <div class="card">
-                            <div class="card-header">
-                                <h3><i class="fas fa-code-branch"></i> ${repo.name}</h3>
-                                <a href="${repo.html_url}" target="_blank" class="repo-link"><i class="fas fa-external-link-alt"></i></a>
-                            </div>
-                            <p>${desc}</p>
-                            <div class="tech-stack">
-                                <span class="tech-tag">${lang}</span>
-                                <span class="tech-tag"><i class="far fa-star"></i> ${repo.stargazers_count}</span>
-                                <span class="tech-tag" style="font-size:0.65rem; color:#666;">${new Date(repo.pushed_at).toLocaleDateString()}</span>
-                            </div>
-                        </div>
-                    `;
+                    const cardHTML = `<div class="card"><div class="card-header"><h3><i class="fas fa-code-branch"></i> ${repo.name}</h3><a href="${repo.html_url}" target="_blank" class="repo-link"><i class="fas fa-external-link-alt"></i></a></div><p>${desc}</p><div class="tech-stack"><span class="tech-tag">${lang}</span><span class="tech-tag"><i class="far fa-star"></i> ${repo.stargazers_count}</span></div></div>`;
                     container.innerHTML += cardHTML;
                 });
-
-            } catch (error) {
-                container.innerHTML = `<p style="color:red;">Projeler yüklenirken hata oluştu.</p>`;
-                console.error(error);
-            }
+            } catch (error) { console.error(error); }
         }
-
-        // --- PONG OYUNU ---
-        let gameActive = false;
-        function initPongGame() {
-            if(gameActive) return;
-            const canvas = document.getElementById('gameCanvas');
-            const ctx = canvas.getContext('2d');
-            let ballX = 50, ballY = 50, dx = 4, dy = 4;
-            let paddleY = 150;
-            
-            canvas.addEventListener('mousemove', e => {
-                const rect = canvas.getBoundingClientRect();
-                paddleY = e.clientY - rect.top - 50;
-            });
-
-            function draw() {
-                if(!document.getElementById('games').classList.contains('active')) return;
-                
-                ctx.fillStyle = 'black';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.fillStyle = '#00ff88';
-                ctx.beginPath(); ctx.arc(ballX, ballY, 8, 0, Math.PI*2); ctx.fill();
-                ctx.fillStyle = '#7000ff';
-                ctx.fillRect(canvas.width - 15, paddleY, 15, 100);
-
-                ballX += dx; ballY += dy;
-                if(ballX < 0) dx = -dx;
-                if(ballY < 0 || ballY > canvas.height) dy = -dy;
-                if(ballX > canvas.width - 25 && ballY > paddleY && ballY < paddleY + 100) {
-                    dx = -dx;
-                }
-                if(ballX > canvas.width) { ballX = 50; ballY = 50; } 
-                requestAnimationFrame(draw);
-            }
-            gameActive = true;
-            draw();
-        }
-
         window.onload = fetchGithubRepos;
+
+        // ==========================================
+        // OYUN MOTORU
+        // ==========================================
+        let canvas = document.getElementById('gameCanvas');
+        let ctx = canvas.getContext('2d');
+        let gameInterval;
+        let currentGame = null;
+        let score = 0;
+
+        function stopCurrentGame() {
+            clearInterval(gameInterval);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            currentGame = null;
+            document.querySelectorAll('.game-card').forEach(c => c.classList.remove('active-game'));
+        }
+
+        function startGame(type, btnElement) {
+            stopCurrentGame();
+            btnElement.classList.add('active-game');
+            score = 0;
+            document.getElementById('scoreBoard').innerText = "SKOR: 0";
+            
+            if (type === 'snake') initSnake();
+            else if (type === 'tetris') initTetris();
+            else if (type === 'maze') initMaze();
+        }
+
+        // --- 1. CYBER SNAKE ---
+        function initSnake() {
+            currentGame = 'snake';
+            document.getElementById('gameControls').innerText = "Yön Tuşları ile Oyna";
+            let gridSize = 20;
+            let tileCount = 20; // 400px / 20 = 20
+            let snake = [{x: 10, y: 10}];
+            let apple = {x: 15, y: 15};
+            let xv = 0, yv = 0;
+
+            document.onkeydown = function(e) {
+                if(currentGame !== 'snake') return;
+                switch(e.keyCode) {
+                    case 37: if(xv!==1) {xv=-1; yv=0;} break; // Sol
+                    case 38: if(yv!==1) {xv=0; yv=-1;} break; // Yukarı
+                    case 39: if(xv!==-1) {xv=1; yv=0;} break; // Sağ
+                    case 40: if(yv!==-1) {xv=0; yv=1;} break; // Aşağı
+                }
+                if([37,38,39,40].includes(e.keyCode)) e.preventDefault();
+            };
+
+            gameInterval = setInterval(() => {
+                let head = {x: snake[0].x + xv, y: snake[0].y + yv};
+                
+                // Duvar Kontrolü (Duvarlar öldürmez, karşıdan çıkartır)
+                if(head.x < 0) head.x = tileCount-1;
+                if(head.x >= tileCount) head.x = 0;
+                if(head.y < 0) head.y = tileCount-1;
+                if(head.y >= tileCount) head.y = 0;
+
+                // Kendine Çarpma
+                for(let i=0; i<snake.length; i++) {
+                    if(snake[i].x === head.x && snake[i].y === head.y) {
+                        score = 0;
+                        snake = [{x:10,y:10}];
+                        xv=0; yv=0;
+                    }
+                }
+
+                snake.unshift(head);
+                if(head.x === apple.x && head.y === apple.y) {
+                    score += 10;
+                    document.getElementById('scoreBoard').innerText = "SKOR: " + score;
+                    apple.x = Math.floor(Math.random()*tileCount);
+                    apple.y = Math.floor(Math.random()*tileCount);
+                } else {
+                    snake.pop();
+                }
+
+                // Çizim
+                ctx.fillStyle = '#000';
+                ctx.fillRect(0,0,canvas.width,canvas.height);
+                
+                ctx.fillStyle = '#ff0055'; // Elma
+                ctx.fillRect(apple.x*gridSize, apple.y*gridSize, gridSize-2, gridSize-2);
+
+                ctx.fillStyle = '#00ff88'; // Yılan
+                for(let i=0; i<snake.length; i++) {
+                    ctx.fillRect(snake[i].x*gridSize, snake[i].y*gridSize, gridSize-2, gridSize-2);
+                }
+            }, 100);
+        }
+
+        // --- 2. NEON BLOCKS (Basitleştirilmiş Tetris Mantığı) ---
+        function initTetris() {
+            currentGame = 'tetris';
+            document.getElementById('gameControls').innerText = "Yön Tuşları: Hareket/Döndür | Aşağı: Hızlandır";
+            
+            const COLS = 10, ROWS = 20, BLOCK_SIZE = 20;
+            // Canvas boyutunu Tetris için ayarla (daha dar uzun)
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0,0,canvas.width,canvas.height); // Temizle
+            
+            // Matris (0 boş, 1 dolu)
+            let board = Array.from({length: ROWS}, () => Array(COLS).fill(0));
+            
+            const SHAPES = [
+                [[1,1,1,1]], // I
+                [[1,1],[1,1]], // O
+                [[1,1,1],[0,1,0]], // T
+                [[1,1,1],[1,0,0]], // L
+                [[1,1,0],[0,1,1]]  // S
+            ];
+            
+            let piece = {
+                matrix: SHAPES[0],
+                x: 3, y: 0,
+                color: '#7000ff'
+            };
+
+            function drawMatrix(matrix, offset) {
+                matrix.forEach((row, y) => {
+                    row.forEach((value, x) => {
+                        if (value !== 0) {
+                            ctx.fillStyle = offset.color || '#00ff88';
+                            ctx.fillRect((x + offset.x) * BLOCK_SIZE + 100, (y + offset.y) * BLOCK_SIZE, BLOCK_SIZE-1, BLOCK_SIZE-1);
+                            ctx.strokeStyle = '#fff';
+                            ctx.strokeRect((x + offset.x) * BLOCK_SIZE + 100, (y + offset.y) * BLOCK_SIZE, BLOCK_SIZE-1, BLOCK_SIZE-1);
+                        }
+                    });
+                });
+            }
+
+            function merge(board, piece) {
+                piece.matrix.forEach((row, y) => {
+                    row.forEach((value, x) => {
+                        if (value !== 0) board[y + piece.y][x + piece.x] = 1; // Basitçe 1 olarak işaretle
+                    });
+                });
+            }
+
+            function collide(board, piece) {
+                const m = piece.matrix;
+                for (let y = 0; y < m.length; ++y) {
+                    for (let x = 0; x < m[y].length; ++x) {
+                        if (m[y][x] !== 0 &&
+                           (board[y + piece.y] && board[y + piece.y][x + piece.x]) !== 0) {
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            }
+
+            function resetPiece() {
+                piece.matrix = SHAPES[Math.floor(Math.random() * SHAPES.length)];
+                piece.y = 0;
+                piece.x = 3;
+                piece.color = ['#00ff88', '#ff0055', '#7000ff'][Math.floor(Math.random()*3)];
+                if (collide(board, piece)) {
+                    board.forEach(row => row.fill(0)); // Reset board
+                    score = 0;
+                    document.getElementById('scoreBoard').innerText = "Oyun Bitti! Skor: " + score;
+                }
+            }
+
+            function arenaSweep() {
+                outer: for (let y = board.length - 1; y > 0; --y) {
+                    for (let x = 0; x < board[y].length; ++x) {
+                        if (board[y][x] === 0) continue outer;
+                    }
+                    const row = board.splice(y, 1)[0].fill(0);
+                    board.unshift(row);
+                    ++y;
+                    score += 100;
+                    document.getElementById('scoreBoard').innerText = "SKOR: " + score;
+                }
+            }
+
+            function rotate(matrix) {
+                for (let y = 0; y < matrix.length; ++y) {
+                    for (let x = 0; x < y; ++x) {
+                        [matrix[x][y], matrix[y][x]] = [matrix[y][x], matrix[x][y]];
+                    }
+                }
+                matrix.forEach(row => row.reverse());
+            }
+
+            function update() {
+                piece.y++;
+                if (collide(board, piece)) {
+                    piece.y--;
+                    merge(board, piece);
+                    resetPiece();
+                    arenaSweep();
+                }
+                
+                // Çizim
+                ctx.fillStyle = '#000';
+                ctx.fillRect(0,0,canvas.width,canvas.height);
+                
+                // Çerçeve
+                ctx.strokeStyle = '#333';
+                ctx.strokeRect(100, 0, 200, 400);
+
+                drawMatrix(board, {x:0, y:0, color:'#333'}); // Zemin
+                drawMatrix(piece.matrix, piece); // Aktif parça
+            }
+
+            gameInterval = setInterval(update, 500);
+
+            document.onkeydown = function(e) {
+                if(currentGame !== 'tetris') return;
+                if(e.keyCode === 37) { // Sol
+                    piece.x--;
+                    if(collide(board, piece)) piece.x++;
+                } else if(e.keyCode === 39) { // Sağ
+                    piece.x++;
+                    if(collide(board, piece)) piece.x--;
+                } else if(e.keyCode === 40) { // Aşağı
+                    piece.y++;
+                    if(collide(board, piece)) {
+                        piece.y--;
+                        merge(board, piece);
+                        resetPiece();
+                        arenaSweep();
+                    }
+                } else if(e.keyCode === 38) { // Döndür
+                    rotate(piece.matrix);
+                    if(collide(board, piece)) {
+                        rotate(piece.matrix); // Geri döndür
+                        rotate(piece.matrix);
+                        rotate(piece.matrix);
+                    }
+                }
+                if([37,38,39,40].includes(e.keyCode)) e.preventDefault();
+                // Ekranı anlık güncelle (lag hissini azaltmak için)
+                ctx.fillStyle = '#000'; ctx.fillRect(0,0,canvas.width,canvas.height);
+                ctx.strokeStyle = '#333'; ctx.strokeRect(100, 0, 200, 400);
+                drawMatrix(board, {x:0, y:0, color:'#333'});
+                drawMatrix(piece.matrix, piece);
+            };
+        }
+
+        // --- 3. MAZE CHASE (Basit Pac-Man Benzeri) ---
+        function initMaze() {
+            currentGame = 'maze';
+            document.getElementById('gameControls').innerText = "Yön Tuşları ile noktaları topla. Kırmızıdan kaç!";
+            
+            // Basit 10x10 Harita (1: Duvar, 0: Yem)
+            let map = [
+                [1,1,1,1,1,1,1,1,1,1],
+                [1,0,0,0,1,0,0,0,0,1],
+                [1,0,1,0,1,0,1,1,0,1],
+                [1,0,1,0,0,0,0,0,0,1],
+                [1,0,0,0,1,1,1,1,0,1],
+                [1,0,1,0,0,0,0,0,0,1],
+                [1,0,1,1,1,0,1,1,0,1],
+                [1,0,0,0,0,0,0,0,0,1],
+                [1,1,1,1,1,1,1,1,1,1]
+            ];
+            
+            let tileSize = 40;
+            let player = {x: 1, y: 1};
+            let ghost = {x: 8, y: 7};
+
+            function drawMap() {
+                ctx.fillStyle = '#000';
+                ctx.fillRect(0,0,canvas.width, canvas.height);
+
+                for(let y=0; y<map.length; y++) {
+                    for(let x=0; x<map[y].length; x++) {
+                        if(map[y][x] === 1) {
+                            ctx.fillStyle = '#0033cc'; // Duvar
+                            ctx.fillRect(x*tileSize, y*tileSize, tileSize, tileSize);
+                        } else if(map[y][x] === 0) {
+                            ctx.fillStyle = '#fff'; // Yem
+                            ctx.beginPath();
+                            ctx.arc(x*tileSize + tileSize/2, y*tileSize + tileSize/2, 4, 0, Math.PI*2);
+                            ctx.fill();
+                        }
+                    }
+                }
+                
+                // Oyuncu
+                ctx.fillStyle = '#ffff00';
+                ctx.beginPath();
+                ctx.arc(player.x*tileSize + tileSize/2, player.y*tileSize + tileSize/2, 15, 0.2 * Math.PI, 1.8 * Math.PI);
+                ctx.lineTo(player.x*tileSize + tileSize/2, player.y*tileSize + tileSize/2);
+                ctx.fill();
+
+                // Hayalet
+                ctx.fillStyle = '#ff0000';
+                ctx.fillRect(ghost.x*tileSize + 5, ghost.y*tileSize + 5, tileSize-10, tileSize-10);
+            }
+
+            function moveGhost() {
+                // Çok basit yapay zeka: Oyuncuya yaklaş
+                let dx = player.x - ghost.x;
+                let dy = player.y - ghost.y;
+                
+                let possibleMoves = [];
+                if(map[ghost.y][ghost.x+1] !== 1) possibleMoves.push({x:1, y:0});
+                if(map[ghost.y][ghost.x-1] !== 1) possibleMoves.push({x:-1, y:0});
+                if(map[ghost.y+1] && map[ghost.y+1][ghost.x] !== 1) possibleMoves.push({x:0, y:1});
+                if(map[ghost.y-1] && map[ghost.y-1][ghost.x] !== 1) possibleMoves.push({x:0, y:-1});
+
+                // Rastgele hareket (zor olmasın diye)
+                if(possibleMoves.length > 0) {
+                    let move = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
+                    ghost.x += move.x;
+                    ghost.y += move.y;
+                }
+                
+                if(ghost.x === player.x && ghost.y === player.y) {
+                    alert("Yakaladın! Skor: " + score);
+                    score = 0;
+                    player = {x:1, y:1};
+                    ghost = {x:8, y:7};
+                    // Yemleri resetle
+                    for(let y=0; y<map.length; y++) 
+                        for(let x=0; x<map[y].length; x++) 
+                            if(map[y][x]===2) map[y][x]=0;
+                }
+            }
+
+            gameInterval = setInterval(() => {
+                moveGhost();
+                drawMap();
+            }, 500);
+
+            document.onkeydown = function(e) {
+                if(currentGame !== 'maze') return;
+                let nextX = player.x;
+                let nextY = player.y;
+
+                if(e.keyCode === 37) nextX--;
+                if(e.keyCode === 39) nextX++;
+                if(e.keyCode === 38) nextY--;
+                if(e.keyCode === 40) nextY++;
+
+                if(map[nextY][nextX] !== 1) {
+                    player.x = nextX;
+                    player.y = nextY;
+                    if(map[nextY][nextX] === 0) {
+                        map[nextY][nextX] = 2; // Yendi olarak işaretle
+                        score += 10;
+                        document.getElementById('scoreBoard').innerText = "SKOR: " + score;
+                    }
+                }
+                drawMap(); // Hareketi hemen çiz
+                if([37,38,39,40].includes(e.keyCode)) e.preventDefault();
+            };
+            
+            drawMap(); // İlk çizim
+        }
+
     </script>
 </body>
 </html>
