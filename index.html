@@ -94,29 +94,69 @@
             </div>
         </section>
 
-        <section id="iot">
-            <h1>IoT Laboratuvarı</h1>
-            <p>Burası hem envanterimi görebileceğiniz hem de kendi kartınızı bağlayıp test edebileceğiniz interaktif laboratuvarım.</p>
+<section id="iot">
+            <h1>🤖 Robotik Kodlama Laboratuvarı</h1>
+            <p>Arduino'nuzu bağlayın ve kod yazmadan bloklarla kontrol edin!</p>
             
             <div class="grid">
-                <div class="card" style="grid-column: span 1 / -1; border-color: var(--secondary);">
+                
+                <div class="card" style="grid-column: span 1 / -1; border-color: #00ff88;">
                     <div class="card-header">
-                        <h3><i class="fas fa-plug"></i> Web Serial Deney Seti</h3>
-                        <span class="tech-tag">USB</span>
-                    </div>
-                    <p>ESP32 veya Arduino kartını USB ile bağla ve buradan kontrol et. 
-                    <br><small style="color:#aaa;">(ESP'nize 115200 baudrate ile '1' gelince LED yakan kod yüklü olmalıdır.)</small></p>
-                    
-                    <div class="serial-controls">
-                        <button id="btnConnect" class="serial-btn connect" onclick="connectSerial()"><i class="fas fa-link"></i> Cihazı Bağla</button>
-                        <button id="btnLedOn" class="serial-btn on" onclick="sendSerial('1')" disabled><i class="fas fa-lightbulb"></i> LED AÇ</button>
-                        <button id="btnLedOff" class="serial-btn off" onclick="sendSerial('0')" disabled><i class="far fa-lightbulb"></i> LED KAPAT</button>
+                        <h3><i class="fas fa-gamepad"></i> Blok Kontrol Paneli</h3>
+                        <div style="display:flex; gap:10px;">
+                            <button id="btnConnect" class="serial-btn connect" onclick="connectSerial()">
+                                <i class="fas fa-usb"></i> Arduino'yu Bağla
+                            </button>
+                        </div>
                     </div>
 
-                    <div id="serialConsole" class="serial-console">
-                        > Konsol Hazır. Cihaz bekleniyor...
+                    <div class="block-container" style="margin-top:20px; display:flex; flex-direction:column; gap:15px; align-items:flex-start;">
+                        
+                        <div class="code-block" style="background:#4C97FF;">
+                            <i class="fas fa-play"></i>
+                            <span>Tıklandığında:</span>
+                            <select id="pinSelectOn" class="block-input">
+                                <option value="13">Pin 13 (Dahili LED)</option>
+                                <option value="12">Pin 12</option>
+                                <option value="11">Pin 11</option>
+                            </select>
+                            <span>numaralı LED'i</span>
+                            <strong>YAK</strong>
+                            <button class="run-btn" onclick="runBlock('ON')">ÇALIŞTIR ▶</button>
+                        </div>
+
+                        <div class="code-block" style="background:#FF6680;">
+                            <i class="fas fa-stop"></i>
+                            <span>Tıklandığında:</span>
+                            <select id="pinSelectOff" class="block-input">
+                                <option value="13">Pin 13 (Dahili LED)</option>
+                                <option value="12">Pin 12</option>
+                                <option value="11">Pin 11</option>
+                            </select>
+                            <span>numaralı LED'i</span>
+                            <strong>SÖNDÜR</strong>
+                            <button class="run-btn" onclick="runBlock('OFF')">ÇALIŞTIR ▶</button>
+                        </div>
+
+                        <div class="code-block" style="background:#FFBF00;">
+                            <i class="fas fa-sync-alt"></i>
+                            <span>Sürekli Tekrarla:</span>
+                            <select id="pinSelectBlink" class="block-input">
+                                <option value="13">Pin 13</option>
+                            </select>
+                            <span>LED'ini yakıp söndür</span>
+                            <button class="run-btn" onclick="toggleBlink()">BAŞLAT / DURDUR</button>
+                        </div>
+
+                    </div>
+
+                    <div id="serialConsole" class="serial-console" style="margin-top:20px; height:100px;">
+                        > Hazır. Lütfen önce "Arduino'yu Bağla" butonuna basın.
+                        <br>> Not: Arduino içinde "Salih Eğitim Firmware" yüklü olmalıdır.
                     </div>
                 </div>
+            </div>
+        </section>
 
                 <div class="card" style="border-left: 4px solid #ff0055;">
                     <h3>🔥 Aktif Testler</h3>
@@ -141,3 +181,4 @@
     <script src="script.js"></script>
 </body>
 </html>
+
