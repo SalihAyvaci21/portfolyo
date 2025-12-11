@@ -128,6 +128,23 @@
         .game-controls { margin-top: 10px; color: #aaa; font-size: 0.9rem; text-align: center;}
         .score-board { font-size: 1.5rem; color: var(--primary); margin-bottom: 10px; font-weight: bold;}
 
+        /* SERIAL TERMINAL */
+        .serial-console {
+            background: #000; border: 1px solid #333; padding: 15px; border-radius: 10px;
+            font-family: 'Courier New', monospace; font-size: 0.9rem; color: #00ff88;
+            height: 150px; overflow-y: auto; margin-top: 15px; width: 100%;
+        }
+        .serial-controls { display: flex; gap: 10px; margin-top: 10px; }
+        .serial-btn {
+            padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;
+            background: #333; color: white; transition: 0.3s;
+        }
+        .serial-btn.connect { background: var(--secondary); }
+        .serial-btn.on { background: var(--primary); color:black;}
+        .serial-btn.off { background: #ff0055; }
+        .serial-btn:hover { opacity: 0.8; }
+        .serial-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
     </style>
 </head>
 <body>
@@ -218,7 +235,28 @@
 
         <section id="iot">
             <h1>IoT Laboratuvarı</h1>
+            <p>Burası hem envanterimi görebileceğiniz hem de kendi kartınızı bağlayıp test edebileceğiniz interaktif laboratuvarım.</p>
+            
             <div class="grid">
+                <div class="card" style="grid-column: span 1 / -1; border-color: var(--secondary);">
+                    <div class="card-header">
+                        <h3><i class="fas fa-plug"></i> Web Serial Deney Seti</h3>
+                        <span class="tech-tag">USB</span>
+                    </div>
+                    <p>ESP32 veya Arduino kartını USB ile bağla ve buradan kontrol et. 
+                    <br><small style="color:#aaa;">(ESP'nize 115200 baudrate ile '1' gelince LED yakan kod yüklü olmalıdır.)</small></p>
+                    
+                    <div class="serial-controls">
+                        <button id="btnConnect" class="serial-btn connect" onclick="connectSerial()"><i class="fas fa-link"></i> Cihazı Bağla</button>
+                        <button id="btnLedOn" class="serial-btn on" onclick="sendSerial('1')" disabled><i class="fas fa-lightbulb"></i> LED AÇ</button>
+                        <button id="btnLedOff" class="serial-btn off" onclick="sendSerial('0')" disabled><i class="far fa-lightbulb"></i> LED KAPAT</button>
+                    </div>
+
+                    <div id="serialConsole" class="serial-console">
+                        > Konsol Hazır. Cihaz bekleniyor...
+                    </div>
+                </div>
+
                 <div class="card" style="border-left: 4px solid #ff0055;">
                     <h3>🔥 Aktif Testler</h3>
                     <ul style="padding-left: 20px; color: var(--text-muted); margin-top:10px;">
@@ -281,6 +319,51 @@
         window.onload = fetchGithubRepos;
 
         // ==========================================
+        // WEB SERIAL API (IOT LAB)
+        // ==========================================
+        let port;
+        let writer;
+
+        async function connectSerial() {
+            if (!("serial" in navigator)) {
+                logConsole("⚠️ Tarayıcınız Web Serial API desteklemiyor (Chrome kullanın).");
+                return;
+            }
+
+            try {
+                port = await navigator.serial.requestPort();
+                await port.open({ baudRate: 115200 });
+                
+                const textEncoder = new TextEncoderStream();
+                const writableStreamClosed = textEncoder.readable.pipeTo(port.writable);
+                writer = textEncoder.writable.getWriter();
+
+                logConsole("✅ Cihaz bağlandı! Port açık (115200 baud).");
+                document.getElementById('btnConnect').innerText = "Bağlandı";
+                document.getElementById('btnConnect').disabled = true;
+                document.getElementById('btnLedOn').disabled = false;
+                document.getElementById('btnLedOff').disabled = false;
+
+            } catch (err) {
+                logConsole("❌ Bağlantı hatası: " + err);
+            }
+        }
+
+        async function sendSerial(data) {
+            if (writer) {
+                await writer.write(data);
+                logConsole("📤 Gönderildi: " + (data === '1' ? "LED AÇ" : "LED KAPAT"));
+            }
+        }
+
+        function logConsole(msg) {
+            const consoleDiv = document.getElementById('serialConsole');
+            const time = new Date().toLocaleTimeString();
+            consoleDiv.innerHTML += `<div><span style="color:#666">[${time}]</span> ${msg}</div>`;
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        }
+
+        // ==========================================
         // OYUN MOTORU
         // ==========================================
         let canvas = document.getElementById('gameCanvas');
@@ -330,14 +413,11 @@
 
             gameInterval = setInterval(() => {
                 let head = {x: snake[0].x + xv, y: snake[0].y + yv};
-                
-                // Duvar Kontrolü (Duvarlar öldürmez, karşıdan çıkartır)
                 if(head.x < 0) head.x = tileCount-1;
                 if(head.x >= tileCount) head.x = 0;
                 if(head.y < 0) head.y = tileCount-1;
                 if(head.y >= tileCount) head.y = 0;
 
-                // Kendine Çarpma
                 for(let i=0; i<snake.length; i++) {
                     if(snake[i].x === head.x && snake[i].y === head.y) {
                         score = 0;
@@ -356,46 +436,29 @@
                     snake.pop();
                 }
 
-                // Çizim
                 ctx.fillStyle = '#000';
                 ctx.fillRect(0,0,canvas.width,canvas.height);
-                
-                ctx.fillStyle = '#ff0055'; // Elma
+                ctx.fillStyle = '#ff0055'; 
                 ctx.fillRect(apple.x*gridSize, apple.y*gridSize, gridSize-2, gridSize-2);
-
-                ctx.fillStyle = '#00ff88'; // Yılan
+                ctx.fillStyle = '#00ff88'; 
                 for(let i=0; i<snake.length; i++) {
                     ctx.fillRect(snake[i].x*gridSize, snake[i].y*gridSize, gridSize-2, gridSize-2);
                 }
             }, 100);
         }
 
-        // --- 2. NEON BLOCKS (Basitleştirilmiş Tetris Mantığı) ---
+        // --- 2. NEON BLOCKS ---
         function initTetris() {
             currentGame = 'tetris';
             document.getElementById('gameControls').innerText = "Yön Tuşları: Hareket/Döndür | Aşağı: Hızlandır";
             
             const COLS = 10, ROWS = 20, BLOCK_SIZE = 20;
-            // Canvas boyutunu Tetris için ayarla (daha dar uzun)
             ctx.fillStyle = '#000';
-            ctx.fillRect(0,0,canvas.width,canvas.height); // Temizle
-            
-            // Matris (0 boş, 1 dolu)
+            ctx.fillRect(0,0,canvas.width,canvas.height);
             let board = Array.from({length: ROWS}, () => Array(COLS).fill(0));
             
-            const SHAPES = [
-                [[1,1,1,1]], // I
-                [[1,1],[1,1]], // O
-                [[1,1,1],[0,1,0]], // T
-                [[1,1,1],[1,0,0]], // L
-                [[1,1,0],[0,1,1]]  // S
-            ];
-            
-            let piece = {
-                matrix: SHAPES[0],
-                x: 3, y: 0,
-                color: '#7000ff'
-            };
+            const SHAPES = [[[1,1,1,1]], [[1,1],[1,1]], [[1,1,1],[0,1,0]], [[1,1,1],[1,0,0]], [[1,1,0],[0,1,1]]];
+            let piece = { matrix: SHAPES[0], x: 3, y: 0, color: '#7000ff' };
 
             function drawMatrix(matrix, offset) {
                 matrix.forEach((row, y) => {
@@ -413,7 +476,7 @@
             function merge(board, piece) {
                 piece.matrix.forEach((row, y) => {
                     row.forEach((value, x) => {
-                        if (value !== 0) board[y + piece.y][x + piece.x] = 1; // Basitçe 1 olarak işaretle
+                        if (value !== 0) board[y + piece.y][x + piece.x] = 1;
                     });
                 });
             }
@@ -422,10 +485,7 @@
                 const m = piece.matrix;
                 for (let y = 0; y < m.length; ++y) {
                     for (let x = 0; x < m[y].length; ++x) {
-                        if (m[y][x] !== 0 &&
-                           (board[y + piece.y] && board[y + piece.y][x + piece.x]) !== 0) {
-                            return true;
-                        }
+                        if (m[y][x] !== 0 && (board[y + piece.y] && board[y + piece.y][x + piece.x]) !== 0) return true;
                     }
                 }
                 return false;
@@ -433,11 +493,10 @@
 
             function resetPiece() {
                 piece.matrix = SHAPES[Math.floor(Math.random() * SHAPES.length)];
-                piece.y = 0;
-                piece.x = 3;
+                piece.y = 0; piece.x = 3;
                 piece.color = ['#00ff88', '#ff0055', '#7000ff'][Math.floor(Math.random()*3)];
                 if (collide(board, piece)) {
-                    board.forEach(row => row.fill(0)); // Reset board
+                    board.forEach(row => row.fill(0));
                     score = 0;
                     document.getElementById('scoreBoard').innerText = "Oyun Bitti! Skor: " + score;
                 }
@@ -445,9 +504,7 @@
 
             function arenaSweep() {
                 outer: for (let y = board.length - 1; y > 0; --y) {
-                    for (let x = 0; x < board[y].length; ++x) {
-                        if (board[y][x] === 0) continue outer;
-                    }
+                    for (let x = 0; x < board[y].length; ++x) if (board[y][x] === 0) continue outer;
                     const row = board.splice(y, 1)[0].fill(0);
                     board.unshift(row);
                     ++y;
@@ -457,11 +514,7 @@
             }
 
             function rotate(matrix) {
-                for (let y = 0; y < matrix.length; ++y) {
-                    for (let x = 0; x < y; ++x) {
-                        [matrix[x][y], matrix[y][x]] = [matrix[y][x], matrix[x][y]];
-                    }
-                }
+                for (let y = 0; y < matrix.length; ++y) for (let x = 0; x < y; ++x) [matrix[x][y], matrix[y][x]] = [matrix[y][x], matrix[x][y]];
                 matrix.forEach(row => row.reverse());
             }
 
@@ -473,47 +526,21 @@
                     resetPiece();
                     arenaSweep();
                 }
-                
-                // Çizim
-                ctx.fillStyle = '#000';
-                ctx.fillRect(0,0,canvas.width,canvas.height);
-                
-                // Çerçeve
-                ctx.strokeStyle = '#333';
-                ctx.strokeRect(100, 0, 200, 400);
-
-                drawMatrix(board, {x:0, y:0, color:'#333'}); // Zemin
-                drawMatrix(piece.matrix, piece); // Aktif parça
+                ctx.fillStyle = '#000'; ctx.fillRect(0,0,canvas.width,canvas.height);
+                ctx.strokeStyle = '#333'; ctx.strokeRect(100, 0, 200, 400);
+                drawMatrix(board, {x:0, y:0, color:'#333'});
+                drawMatrix(piece.matrix, piece);
             }
 
             gameInterval = setInterval(update, 500);
 
             document.onkeydown = function(e) {
                 if(currentGame !== 'tetris') return;
-                if(e.keyCode === 37) { // Sol
-                    piece.x--;
-                    if(collide(board, piece)) piece.x++;
-                } else if(e.keyCode === 39) { // Sağ
-                    piece.x++;
-                    if(collide(board, piece)) piece.x--;
-                } else if(e.keyCode === 40) { // Aşağı
-                    piece.y++;
-                    if(collide(board, piece)) {
-                        piece.y--;
-                        merge(board, piece);
-                        resetPiece();
-                        arenaSweep();
-                    }
-                } else if(e.keyCode === 38) { // Döndür
-                    rotate(piece.matrix);
-                    if(collide(board, piece)) {
-                        rotate(piece.matrix); // Geri döndür
-                        rotate(piece.matrix);
-                        rotate(piece.matrix);
-                    }
-                }
+                if(e.keyCode === 37) { piece.x--; if(collide(board, piece)) piece.x++; }
+                else if(e.keyCode === 39) { piece.x++; if(collide(board, piece)) piece.x--; }
+                else if(e.keyCode === 40) { piece.y++; if(collide(board, piece)) { piece.y--; merge(board, piece); resetPiece(); arenaSweep(); } }
+                else if(e.keyCode === 38) { rotate(piece.matrix); if(collide(board, piece)) { rotate(piece.matrix); rotate(piece.matrix); rotate(piece.matrix); } }
                 if([37,38,39,40].includes(e.keyCode)) e.preventDefault();
-                // Ekranı anlık güncelle (lag hissini azaltmak için)
                 ctx.fillStyle = '#000'; ctx.fillRect(0,0,canvas.width,canvas.height);
                 ctx.strokeStyle = '#333'; ctx.strokeRect(100, 0, 200, 400);
                 drawMatrix(board, {x:0, y:0, color:'#333'});
@@ -521,117 +548,63 @@
             };
         }
 
-        // --- 3. MAZE CHASE (Basit Pac-Man Benzeri) ---
+        // --- 3. MAZE CHASE ---
         function initMaze() {
             currentGame = 'maze';
             document.getElementById('gameControls').innerText = "Yön Tuşları ile noktaları topla. Kırmızıdan kaç!";
-            
-            // Basit 10x10 Harita (1: Duvar, 0: Yem)
             let map = [
-                [1,1,1,1,1,1,1,1,1,1],
-                [1,0,0,0,1,0,0,0,0,1],
-                [1,0,1,0,1,0,1,1,0,1],
-                [1,0,1,0,0,0,0,0,0,1],
-                [1,0,0,0,1,1,1,1,0,1],
-                [1,0,1,0,0,0,0,0,0,1],
-                [1,0,1,1,1,0,1,1,0,1],
-                [1,0,0,0,0,0,0,0,0,1],
-                [1,1,1,1,1,1,1,1,1,1]
+                [1,1,1,1,1,1,1,1,1,1], [1,0,0,0,1,0,0,0,0,1], [1,0,1,0,1,0,1,1,0,1],
+                [1,0,1,0,0,0,0,0,0,1], [1,0,0,0,1,1,1,1,0,1], [1,0,1,0,0,0,0,0,0,1],
+                [1,0,1,1,1,0,1,1,0,1], [1,0,0,0,0,0,0,0,0,1], [1,1,1,1,1,1,1,1,1,1]
             ];
-            
             let tileSize = 40;
             let player = {x: 1, y: 1};
             let ghost = {x: 8, y: 7};
 
             function drawMap() {
-                ctx.fillStyle = '#000';
-                ctx.fillRect(0,0,canvas.width, canvas.height);
-
+                ctx.fillStyle = '#000'; ctx.fillRect(0,0,canvas.width, canvas.height);
                 for(let y=0; y<map.length; y++) {
                     for(let x=0; x<map[y].length; x++) {
-                        if(map[y][x] === 1) {
-                            ctx.fillStyle = '#0033cc'; // Duvar
-                            ctx.fillRect(x*tileSize, y*tileSize, tileSize, tileSize);
-                        } else if(map[y][x] === 0) {
-                            ctx.fillStyle = '#fff'; // Yem
-                            ctx.beginPath();
-                            ctx.arc(x*tileSize + tileSize/2, y*tileSize + tileSize/2, 4, 0, Math.PI*2);
-                            ctx.fill();
-                        }
+                        if(map[y][x] === 1) { ctx.fillStyle = '#0033cc'; ctx.fillRect(x*tileSize, y*tileSize, tileSize, tileSize); }
+                        else if(map[y][x] === 0) { ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x*tileSize + tileSize/2, y*tileSize + tileSize/2, 4, 0, Math.PI*2); ctx.fill(); }
                     }
                 }
-                
-                // Oyuncu
-                ctx.fillStyle = '#ffff00';
-                ctx.beginPath();
-                ctx.arc(player.x*tileSize + tileSize/2, player.y*tileSize + tileSize/2, 15, 0.2 * Math.PI, 1.8 * Math.PI);
-                ctx.lineTo(player.x*tileSize + tileSize/2, player.y*tileSize + tileSize/2);
-                ctx.fill();
-
-                // Hayalet
-                ctx.fillStyle = '#ff0000';
-                ctx.fillRect(ghost.x*tileSize + 5, ghost.y*tileSize + 5, tileSize-10, tileSize-10);
+                ctx.fillStyle = '#ffff00'; ctx.beginPath(); ctx.arc(player.x*tileSize + tileSize/2, player.y*tileSize + tileSize/2, 15, 0.2 * Math.PI, 1.8 * Math.PI); ctx.lineTo(player.x*tileSize + tileSize/2, player.y*tileSize + tileSize/2); ctx.fill();
+                ctx.fillStyle = '#ff0000'; ctx.fillRect(ghost.x*tileSize + 5, ghost.y*tileSize + 5, tileSize-10, tileSize-10);
             }
 
             function moveGhost() {
-                // Çok basit yapay zeka: Oyuncuya yaklaş
                 let dx = player.x - ghost.x;
                 let dy = player.y - ghost.y;
-                
                 let possibleMoves = [];
                 if(map[ghost.y][ghost.x+1] !== 1) possibleMoves.push({x:1, y:0});
                 if(map[ghost.y][ghost.x-1] !== 1) possibleMoves.push({x:-1, y:0});
                 if(map[ghost.y+1] && map[ghost.y+1][ghost.x] !== 1) possibleMoves.push({x:0, y:1});
                 if(map[ghost.y-1] && map[ghost.y-1][ghost.x] !== 1) possibleMoves.push({x:0, y:-1});
-
-                // Rastgele hareket (zor olmasın diye)
                 if(possibleMoves.length > 0) {
                     let move = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
-                    ghost.x += move.x;
-                    ghost.y += move.y;
+                    ghost.x += move.x; ghost.y += move.y;
                 }
-                
                 if(ghost.x === player.x && ghost.y === player.y) {
-                    alert("Yakaladın! Skor: " + score);
-                    score = 0;
-                    player = {x:1, y:1};
-                    ghost = {x:8, y:7};
-                    // Yemleri resetle
-                    for(let y=0; y<map.length; y++) 
-                        for(let x=0; x<map[y].length; x++) 
-                            if(map[y][x]===2) map[y][x]=0;
+                    alert("Yakaladın! Skor: " + score); score = 0; player = {x:1, y:1}; ghost = {x:8, y:7};
+                    for(let y=0; y<map.length; y++) for(let x=0; x<map[y].length; x++) if(map[y][x]===2) map[y][x]=0;
                 }
             }
 
-            gameInterval = setInterval(() => {
-                moveGhost();
-                drawMap();
-            }, 500);
+            gameInterval = setInterval(() => { moveGhost(); drawMap(); }, 500);
 
             document.onkeydown = function(e) {
                 if(currentGame !== 'maze') return;
-                let nextX = player.x;
-                let nextY = player.y;
-
-                if(e.keyCode === 37) nextX--;
-                if(e.keyCode === 39) nextX++;
-                if(e.keyCode === 38) nextY--;
-                if(e.keyCode === 40) nextY++;
-
+                let nextX = player.x; let nextY = player.y;
+                if(e.keyCode === 37) nextX--; if(e.keyCode === 39) nextX++; if(e.keyCode === 38) nextY--; if(e.keyCode === 40) nextY++;
                 if(map[nextY][nextX] !== 1) {
-                    player.x = nextX;
-                    player.y = nextY;
-                    if(map[nextY][nextX] === 0) {
-                        map[nextY][nextX] = 2; // Yendi olarak işaretle
-                        score += 10;
-                        document.getElementById('scoreBoard').innerText = "SKOR: " + score;
-                    }
+                    player.x = nextX; player.y = nextY;
+                    if(map[nextY][nextX] === 0) { map[nextY][nextX] = 2; score += 10; document.getElementById('scoreBoard').innerText = "SKOR: " + score; }
                 }
-                drawMap(); // Hareketi hemen çiz
+                drawMap();
                 if([37,38,39,40].includes(e.keyCode)) e.preventDefault();
             };
-            
-            drawMap(); // İlk çizim
+            drawMap();
         }
 
     </script>
