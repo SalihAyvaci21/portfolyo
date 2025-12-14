@@ -4,7 +4,7 @@
 let compiledHexCode = null; // Derlenen kod
 let serialPort = null;      // Açık port
 let serialWriter = null;    // Veri gönderme aracı
-let blinkInterval = null;   // Blink zamanlayıcısı
+// blinkInterval global değişkeni kaldırıldı
 
 // ==========================================
 // 1. NAVİGASYON VE SAYFA GEÇİŞLERİ
@@ -13,14 +13,11 @@ function showSection(id, btn) {
     document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
     document.getElementById(id).classList.add('active');
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-    
-    // Yalnızca normal navigasyon butonlarını aktif eder, CV linkini değil.
-    if (btn && btn.classList && !btn.href) {
-        btn.classList.add('active');
-    }
-    
-    // Oyun bölümünden çıkınca oyunu durdur
-    if (id !== 'games') stopCurrentGame();
+    btn.classList.add('active');
+    // Not: Artık "if (id !== 'games') stopCurrentGame();" gibi kontrolleri de kaldırdık, 
+    // ancak oyun fonksiyonlarının geri kalanı aşağıda olduğu için şimdilik tutuyorum.
+    // Eğer portfolyo sitesinde oynamak istediğiniz asıl kod buysa.
+    if (id !== 'games') stopCurrentGame(); 
 }
 
 // ==========================================
@@ -47,38 +44,25 @@ async function fetchGithubRepos() {
 window.onload = fetchGithubRepos;
 
 // ==========================================
-// 3. IOT: DERLEME (Backend)
+// 3. IOT: DERLEME (Backend) - ESKİ URL
 // ==========================================
 async function compileCode() {
     const editorVal = document.getElementById('cppEditor').value;
     const statusLbl = document.getElementById('statusLabelNew');
     const btnUpload = document.getElementById('btnUploadNew');
 
-    // !!! BURAYI RENDER'DAN ALDIĞINIZ GERÇEK ARDUINO CLI BACKEND URL'Sİ İLE DEĞİŞTİRİNİZ !!!
-    const ARDUINO_BACKEND_URL = 'https://arduino-backend-et1z.onrender.com'; 
-
     statusLbl.innerText = "Durum: Sunucuda derleniyor... (Bekleyin)";
     statusLbl.style.color = "#40c4ff";
-    btnUpload.disabled = true;
 
     try {
-        const response = await fetch(`${ARDUINO_BACKEND_URL}/compile`, {
+        // ESKİ URL'YE DÖNDÜ
+        const response = await fetch('https://arduino-backend-ajkr.onrender.com/compile', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ code: editorVal })
         });
 
-        if (!response.ok) {
-            let errorDetail = "Bilinmeyen sunucu hatası.";
-            try {
-                 const errorBody = await response.json();
-                 errorDetail = errorBody.details || errorBody.error || errorDetail;
-            } catch (e) {
-                 errorDetail = await response.text();
-            }
-            throw new Error(`Sunucu Hatası (${response.status}): ${errorDetail.substring(0, 100)}...`);
-        }
-        
+        if (!response.ok) throw new Error("Sunucu Hatası");
         const data = await response.json();
 
         if (data.hex) {
@@ -90,10 +74,10 @@ async function compileCode() {
             btnUpload.style.cursor = "pointer";
             btnUpload.classList.remove('off');
         } else {
-            throw new Error("Hex kodu boş döndü. Derleme başarısız.");
+            throw new Error("Hex kodu boş döndü.");
         }
     } catch (err) {
-        console.error("Derleme hatası:", err);
+        console.error(err);
         statusLbl.innerText = "Hata: " + err.message;
         statusLbl.style.color = "#ff5252";
     }
@@ -110,11 +94,8 @@ async function runUploader(hexDataToUse = null) {
         return;
     }
     
-    // Yükleme öncesi seri port bağlantısını kes (AVRgirl portu tek başına ister)
-    if (serialPort) {
-        console.log("Mevcut bağlantı yükleme için kesiliyor...");
-        await disconnectSerial(true); // true = sessiz modda kes
-    }
+    // Seri Port bağlantı kesme mantığı kaldırıldı, çünkü eski kodda yoktu.
+    // Eğer takılma yaşarsanız, bunun manuel olarak eski kodda çözülmediğini unutmayın.
 
     const statusLbl = document.getElementById('statusLabelNew') || document.getElementById('statusBadge');
     if(statusLbl) statusLbl.innerText = "Port Seçiliyor...";
@@ -179,6 +160,7 @@ async function runQuickTest() {
 
         if(btn) btn.innerHTML = '<i class="fas fa-microchip"></i> Yükleniyor...';
         
+        // Yükleyiciye gönder
         await runUploader(hexText);
 
     } catch (err) {
@@ -212,7 +194,7 @@ async function connectSerial() {
         await serialPort.open({ baudRate: 115200 });
 
         const textEncoder = new TextEncoderStream();
-        textEncoder.readable.pipeTo(serialPort.writable);
+        const writableStreamClosed = textEncoder.readable.pipeTo(serialPort.writable);
         serialWriter = textEncoder.writable.getWriter();
 
         // Arayüz Güncelleme
@@ -223,9 +205,7 @@ async function connectSerial() {
         }
         document.getElementById('serialConsole').innerHTML += "<br>> <span style='color:#0f0'>Bağlantı Başarılı!</span>";
 
-        // Butonların görünürlüğünü ayarla
-        document.getElementById('btnConnect').style.display = 'none';
-        document.getElementById('btnDisconnect').style.display = 'inline-flex';
+        // Bağlantıyı Kes butonu görünürlüğü mantığı kaldırıldı.
 
     } catch (err) {
         console.error(err);
@@ -233,40 +213,7 @@ async function connectSerial() {
     }
 }
 
-async function disconnectSerial(silent = false) {
-    if(blinkInterval) {
-        clearInterval(blinkInterval);
-        blinkInterval = null;
-        document.getElementById('serialConsole').innerHTML += "<br>> <span style='color:orange'>BLINK Durduruldu.</span>";
-    }
-
-    try {
-        if (serialWriter) {
-            await serialWriter.releaseLock();
-            serialWriter = null;
-        }
-        if (serialPort) {
-            await serialPort.close();
-            serialPort = null;
-        }
-    } catch(e) {
-        console.log("Port kapatma hatası (önemsiz):", e);
-    }
-
-    if(!silent) {
-        const badge = document.getElementById('statusBadge');
-        if(badge) {
-            badge.innerHTML = '<i class="fas fa-circle" style="font-size:0.6rem;"></i> Bağlantı Yok';
-            badge.style.color = "#aaa";
-        }
-        
-        document.getElementById('serialConsole').innerHTML += "<br>> <span style='color:orange'>Bağlantı Kesildi.</span>";
-    
-        // Butonların görünürlüğünü ayarla
-        document.getElementById('btnConnect').style.display = 'inline-flex';
-        document.getElementById('btnDisconnect').style.display = 'none';
-    }
-}
+// disconnectSerial fonksiyonu orijinal kodda yoktu, bu nedenle kaldırıldı.
 
 async function runBlock(command) {
     if (!serialWriter) {
@@ -275,46 +222,17 @@ async function runBlock(command) {
     }
 
     try {
-        // BLINK döngüsünü durdur
-        if(blinkInterval) {
-            clearInterval(blinkInterval);
-            blinkInterval = null;
-            document.getElementById('serialConsole').innerHTML += "<br>> <span style='color:orange'>BLINK Durduruldu.</span>";
-        }
-
-        let writeCommand = "";
-        let consoleMessage = "";
+        // BLINK mantığı kaldırıldı
 
         if (command === 'ON') {
-            writeCommand = "1";
-            consoleMessage = "LED YAKILDI (1)";
+            await serialWriter.write("1");
+            document.getElementById('serialConsole').innerHTML += `<br>> LED YAKILDI (1)`;
         }
         else if (command === 'OFF') {
-            writeCommand = "0";
-            consoleMessage = "LED SÖNDÜRÜLDÜ (0)";
+            await serialWriter.write("0");
+            document.getElementById('serialConsole').innerHTML += `<br>> LED SÖNDÜRÜLDÜ (0)`;
         }
-        else if (command === 'BLINK') {
-            consoleMessage = "BLINK BAŞLATILDI... (Durdurmak için ON/OFF ya da Bağlantıyı Kes'i kullanın)";
-            document.getElementById('serialConsole').innerHTML += `<br>> <span>${consoleMessage}</span>`;
-            let toggle = false;
-            // 500ms aralıklarla 1 ve 0 gönder
-            blinkInterval = setInterval(async () => {
-                // Interval çalışırken bağlantı kesilirse, döngüyü durdur
-                if(!serialWriter) { clearInterval(blinkInterval); return; }
-                toggle = !toggle;
-                try {
-                    await serialWriter.write(toggle ? "1" : "0");
-                } catch(e) { 
-                    // Yazma hatası olursa (örneğin port kapatılırsa) döngüyü durdur
-                    clearInterval(blinkInterval); 
-                    blinkInterval = null;
-                }
-            }, 500); 
-            return; // Blink döngüsü başladığı için buradan çık
-        }
-        
-        await serialWriter.write(writeCommand);
-        document.getElementById('serialConsole').innerHTML += `<br>> <span>${consoleMessage}</span>`;
+        // BLINK komutu kaldırıldı
 
     } catch (err) {
         alert("Gönderme Hatası: " + err);
@@ -322,26 +240,21 @@ async function runBlock(command) {
 }
 
 // ==========================================
-// 7. OYUNLAR (Tüm Fonksiyonlar Eklendi)
+// 7. OYUNLAR (Eski Hali - Kısmen Eksik)
 // ==========================================
 let canvas = document.getElementById('gameCanvas');
 let ctx = canvas ? canvas.getContext('2d') : null;
 let gameInterval, currentGame, score = 0;
 
 function stopCurrentGame() {
-    if(!ctx && canvas) ctx = canvas.getContext('2d');
     if(!ctx) return;
     clearInterval(gameInterval);
-    ctx.clearRect(0, 0, 400, 400); 
+    ctx.clearRect(0, 0, 400, 400);
     currentGame = null;
 }
 
 function startGame(t, b) {
-    if(!ctx) { 
-        canvas = document.getElementById('gameCanvas');
-        ctx = canvas ? canvas.getContext('2d') : null;
-        if (!ctx) return; 
-    }
+    if(!ctx) return;
     stopCurrentGame();
     document.querySelectorAll('.game-card').forEach(c => c.classList.remove('active-game'));
     if(b) b.classList.add('active-game');
