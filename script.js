@@ -54,7 +54,7 @@ async function compileCode() {
     const btnUpload = document.getElementById('btnUploadNew');
 
     // !!! BU ADRESİ SİZİN GERÇEK ARDUINO CLI BACKEND URL'NİZ İLE DEĞİŞTİRİN !!!
-    const ARDUINO_BACKEND_URL = 'https://arduino-cli-service.onrender.com'; // Örnek URL
+    const ARDUINO_BACKEND_URL = 'https://portfolyo-1w2x.onrender.com'; // Örnek URL
 
     statusLbl.innerText = "Durum: Sunucuda derleniyor... (Bekleyin)";
     statusLbl.style.color = "#40c4ff";
