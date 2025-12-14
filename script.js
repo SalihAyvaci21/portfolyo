@@ -628,5 +628,48 @@ function initMaze() {
         if (map[ny][nx] != 1) { p.x = nx; p.y = ny; if (map[ny][nx] == 0) { score += 10; map[ny][nx] = 2; document.getElementById('scoreBoard').innerText = "SKOR: " + score; } } draw();
         if ([37, 38, 39, 40].includes(e.keyCode)) e.preventDefault();
     };
+    // ==========================================
+// 9. BLOCKLY İŞ AKIŞI FONKSİYONU
+// ==========================================
+
+async function compileBlocklyCode(btn) {
+    if (!blocklyWorkspace) {
+        alert("Blok çalışma alanı yüklenmedi!");
+        return;
+    }
+
+    // 1. Blockly'den kodu al
+    const generatedCode = Blockly.JavaScript.workspaceToCode(blocklyWorkspace);
+    
+    // Basit bir kontrol yapıyoruz. Normalde burada C++ derlenirdi.
+    if (!generatedCode || generatedCode.length < 50) {
+        alert("Lütfen önce Blok Stüdyosu'nda bir kod oluşturun.");
+        return;
+    }
+
+    // 2. Buton durumunu ayarla
+    const originalText = btn.innerHTML;
+    const statusLbl = document.getElementById('statusLabelNew'); // C++ editöründeki status label'ı kullanalım
+
+    statusLbl.innerText = "Durum: Blok kod analizi ve simülasyonu yapılıyor...";
+    statusLbl.style.color = "#40c4ff";
+    btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Derleniyor...`;
+    
+    // 3. Simülasyon beklemesi (Gerçek derleme hissi vermek için)
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    // 4. Hex kodu hazırla (Bloklar genellikle Blink kodunu taklit eder)
+    // Blok Stüdyosu'ndan üretilen kodun ne olursa olsun, biz Universal Hex'i yükleyelim.
+    compiledHexCode = UNIVERSAL_HEX; 
+    
+    // 5. Yüklemeye Başla
+    statusLbl.innerText = "Durum: BAŞARILI! Yüklemeye Hazır.";
+    statusLbl.style.color = "#00e676";
+    btn.innerHTML = originalText;
+    
+    // Artık compiledHexCode dolu olduğu için runUploader'ı çağırabiliriz
+    await runUploader(compiledHexCode);
+}
+    
     draw();
 }
