@@ -116,52 +116,11 @@ void loop() {
                 </div>
 
                 <div class="header-controls" style="justify-content: flex-start; margin-top: 15px;">
-                    <button id="btnCompileNew" class="serial-btn" style="background:#00bcd4; color:black;" onclick="runCompiler()">
+                    <button id="btnCompileNew" class="serial-btn" style="background:#00bcd4; color:black;" onclick="compileCode()">
                         <i class="fas fa-cog"></i> 1. Derle (Server)
                     </button>
                     
                     <button id="btnUploadNew" class="serial-btn off" style="background:#555; color:white; cursor: not-allowed;" disabled onclick="runUploader()">
-                        async function runQuickTest() {
-        const btn = document.getElementById('btnQuickTest');
-        const statusLbl = document.getElementById('statusBadge');
-
-        // 1. Butonun durumunu güncelle (Yükleniyor efekti)
-        if(btn) {
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> İndiriliyor...';
-        }
-        if(statusLbl) statusLbl.innerHTML = '<span style="color:orange">Dosya okunuyor...</span>';
-
-        try {
-            // 2. firmware.hex dosyasını sunucudan/klasörden metin olarak çek
-            const response = await fetch('firmware.hex');
-            
-            if (!response.ok) {
-                throw new Error("firmware.hex dosyası bulunamadı! (HTTP " + response.status + ")");
-            }
-            
-            // Hex dosyasının içeriğini metin (string) olarak al
-            const hexText = await response.text();
-
-            // 3. Mevcut yükleyici fonksiyonuna bu metni gönder
-            // Not: runUploader zaten hex string'i alıp Blob -> ArrayBuffer çevrimini yapıyor.
-            if(btn) btn.innerHTML = '<i class="fas fa-microchip"></i> Yükleniyor...';
-            
-            // runUploader'ı çağır
-            await runUploader(hexText);
-
-        } catch (err) {
-            console.error(err);
-            alert("Hata oluştu: " + err.message);
-            if(statusLbl) statusLbl.innerHTML = '<span style="color:red">Hata!</span>';
-        } finally {
-            // 4. İşlem bitince (başarılı veya hatalı) butonu eski haline getir
-            if(btn) {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-microchip"></i> Test Firmware Yükle';
-            }
-        }
-    }
                         <i class="fas fa-upload"></i> 2. Kodu Yükle
                     </button>
                 </div>
@@ -303,17 +262,74 @@ void loop() {
                         // Yükleme bitince statusu güncelle
                         const badge = document.getElementById('statusBadge');
                         if(badge) badge.innerHTML = '<i class="fas fa-check"></i> Yüklendi';
+                        
+                        // Yükleme tamamlandığında butonu eski haline getir (Test butonu için)
+                        const testBtn = document.getElementById('btnQuickTest');
+                        if(testBtn && testBtn.disabled) {
+                            testBtn.disabled = false;
+                            testBtn.innerHTML = '<i class="fas fa-microchip"></i> Test Firmware Yükle';
+                        }
                     }
                 });
             };
             reader.readAsArrayBuffer(blob);
         } catch (err) {
             alert("İşlem İptal Edildi: " + err);
+            // Hata durumunda da butonu düzelt
+            const testBtn = document.getElementById('btnQuickTest');
+            if(testBtn) {
+                testBtn.disabled = false;
+                testBtn.innerHTML = '<i class="fas fa-microchip"></i> Test Firmware Yükle';
+            }
         }
     }
 
     // ============================================================
-    // 2. BÖLÜM: SERİ PORT BAĞLANTISI VE KONTROL (Canlı Etkileşim)
+    // 2. BÖLÜM: TEST FİRMWARE YÜKLEME (FİRMWARE.HEX OKUMA)
+    // ============================================================
+    async function runQuickTest() {
+        const btn = document.getElementById('btnQuickTest');
+        const statusLbl = document.getElementById('statusBadge');
+
+        // 1. Butonun durumunu güncelle (Yükleniyor efekti)
+        if(btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> İndiriliyor...';
+        }
+        if(statusLbl) statusLbl.innerHTML = '<span style="color:orange">Dosya okunuyor...</span>';
+
+        try {
+            // 2. firmware.hex dosyasını sunucudan/klasörden metin olarak çek
+            // (firmware.hex dosyası index.html ile aynı klasörde olmalı)
+            const response = await fetch('firmware.hex');
+            
+            if (!response.ok) {
+                throw new Error("firmware.hex dosyası bulunamadı! (HTTP " + response.status + ")");
+            }
+            
+            // Hex dosyasının içeriğini metin (string) olarak al
+            const hexText = await response.text();
+
+            // 3. Mevcut yükleyici fonksiyonuna bu metni gönder
+            if(btn) btn.innerHTML = '<i class="fas fa-microchip"></i> Yükleniyor...';
+            
+            // runUploader'ı çağır ve hex verisini içine at
+            await runUploader(hexText);
+
+        } catch (err) {
+            console.error(err);
+            alert("Hata oluştu: " + err.message);
+            if(statusLbl) statusLbl.innerHTML = '<span style="color:red">Hata!</span>';
+            // Hata durumunda butonu hemen aç
+            if(btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-microchip"></i> Test Firmware Yükle';
+            }
+        }
+    }
+
+    // ============================================================
+    // 3. BÖLÜM: SERİ PORT BAĞLANTISI VE KONTROL (Canlı Etkileşim)
     // ============================================================
     
     async function connectSerial() {
@@ -323,23 +339,17 @@ void loop() {
         }
 
         try {
-            // 1. Port İste
             serialPort = await navigator.serial.requestPort();
-            
-            // 2. Portu Aç (Arduino standart hızı 115200 veya 9600 olabilir, biz 115200 kullanacağız)
             await serialPort.open({ baudRate: 115200 });
 
-            // 3. Yazıcıyı (Writer) Hazırla
             const textEncoder = new TextEncoderStream();
             const writableStreamClosed = textEncoder.readable.pipeTo(serialPort.writable);
             serialWriter = textEncoder.writable.getWriter();
 
-            // 4. Arayüzü Güncelle
             const badge = document.getElementById('statusBadge');
             badge.innerHTML = '<i class="fas fa-circle" style="color:#00e676; font-size:0.6rem;"></i> Bağlandı';
             badge.style.color = "#00e676";
             
-            // Konsola yaz
             document.getElementById('serialConsole').innerHTML += "<br>> <span style='color:#0f0'>Bağlantı Başarılı!</span> Butonları kullanabilirsiniz.";
 
         } catch (err) {
@@ -348,7 +358,6 @@ void loop() {
         }
     }
 
-    // Butonlara basılınca çalışan fonksiyon
     async function runBlock(command) {
         if (!serialWriter) {
             alert("Önce 'Bağlan' butonuna basarak bağlantıyı kurmalısınız!");
@@ -356,103 +365,17 @@ void loop() {
         }
 
         try {
-            // Arduino'ya tek karakterlik komut gönderiyoruz
-            // '1' -> Yak
-            // '0' -> Söndür
-            // 'b' -> Blink
             let charToSend = "";
-            
             if (command === 'ON') charToSend = "1";
             if (command === 'OFF') charToSend = "0";
             
             await serialWriter.write(charToSend);
-            
-            // Konsola Log Düş
             document.getElementById('serialConsole').innerHTML += `<br>> Komut Gönderildi: ${command}`;
             
         } catch (err) {
             alert("Gönderme Hatası: " + err);
         }
     }
-
-    // ============================================================
-    // 3. BÖLÜM: AKILLI FIRMWARE (Serial Dinleyen Kod)
-    // ============================================================
-    // Bu C++ kodu aşağıdadır: 
-    /*
-        void setup() { 
-            pinMode(13, OUTPUT); 
-            Serial.begin(115200); 
-        }
-        void loop() { 
-            if(Serial.available()){ 
-                char c = Serial.read(); 
-                if(c == '1') digitalWrite(13, HIGH); 
-                if(c == '0') digitalWrite(13, LOW); 
-            } 
-        }
-    */
-    // Bu kodun derlenmiş HEX hali (Arduino Uno için):
-    const smartFirmwareHex = [
-        ":100000000C9434000C943E000C943E000C943E0082",
-        ":100010000C943E000C943E000C943E000C943E0070",
-        ":100020000C943E000C943E000C943E000C943E0060",
-        ":100030000C943E000C943E000C943E000C943E0050",
-        ":100040000C9483000C943E000C943E000C943E00FC",
-        ":100050000C943E000C943E000C943E000C943E0030",
-        ":100060000C943E000C943E00000000002400270001",
-        ":100070002A0000000000250028002B0004040404CE",
-        ":100080000404040402020202020203030303030342",
-        ":10009000010204081020408001020408102001021F",
-        ":1000A00004081020000000080002010000030407FB",
-        ":1000B000000000000000000011241FBECFEFD8E0B8",
-        ":1000C000DEBFCDBF21E0A0E0B1E001C01D92A930AC",
-        ":1000D000B207E1F70E942D010C945E010C940000E0",
-        ":1000E0000E9452000E94A700089580910001811197",
-        ":1000F00002C01495809300010895E0910001F0E05E",
-        ":10010000EE0FFF1FA591B4912FB7F894819191919E",
-        ":100110009F012FBF08959091C00095FFFCCF8091EE",
-        ":10012000C6008F778093C6001092C10080E1809310",
-        ":10013000C4001092C5008093C2000E9470000895E9",
-        ":1001400080E090E008950E94720080E00E94770020",
-        ":1001500008950E949300611108C08981813311F0D3",
-        ":10016000803321F084E00E9477000CC0803331F07E",
-        ":1001700080E00E94770004C01092050180930401CA",
-        ":100180000895089526E8230F0296A11DB11DD2CF4D",
-        ":1001900084B58F7784BD8091B0008F7D8093B0002E",
-        ":1001A0001092C100209180002F7D209380008091AC",
-        ":1001B000B0008F7D8093B000809180008F77809375",
-        ":1001C0008000909101019F5F9F739093010185B5AC",
-        ":1001D0008F7785BD909101019F5F9F739093010109",
-        ":1001E000209180002F77209380008091B0008F7728",
-        ":1001F0008093B000809102018F5F8F738093020125",
-        ":1002000085B58F7D85BD809102018F5F8F738093E2",
-        ":1002100002010895982F8091C00085FFFCCF9093FA",
-        ":10022000C6000895EF92FF920F931F93CF93DF930D",
-        ":10023000809102018F5F8F738093020185B58F7D3D",
-        ":1002400085BD809102018F5F8F738093020120914E",
-        ":1002500080002F77209380008091B0008F778093B1",
-        ":10026000B000809101018F5F8F738093010185B512",
-        ":100270008F7785BD809101018F5F8F738093010190",
-        ":100280001092C100209180002F7D20938000809103",
-        ":10029000B0008F7D8093B000DF91CF911F910F91DB",
-        ":1002A000FF90EF900895F894FFCF3600000000005C",
-        ":00000001FF"
-    ].join('\n').trim();
-
-    function uploadDefaultBlink() {
-        // "Firmware Yükle" butonuna basınca bu çalışacak
-        // Bu kod, serial komutları dinleyen özel koddur.
-        runUploader(smartFirmwareHex);
-    }
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
