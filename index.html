@@ -112,15 +112,15 @@ void loop() {
   delay(100);
 }
                     </textarea>
-                    <div id="compileStatus" style="margin-top: 5px; font-size: 0.9rem; color: #888;">Durum: Bekleniyor...</div>
+                    <div id="statusLabelNew" style="margin-top: 5px; font-size: 0.9rem; color: #888;">Durum: Bekleniyor...</div>
                 </div>
 
                 <div class="header-controls" style="justify-content: flex-start; margin-top: 15px;">
-                    <button id="btnCompile" class="serial-btn" style="background:#00bcd4; color:black;" onclick="compileCode()">
+                    <button id="btnCompileNew" class="serial-btn" style="background:#00bcd4; color:black;" onclick="runCompiler()">
                         <i class="fas fa-cog"></i> 1. Derle (Server)
                     </button>
                     
-                    <button id="btnUploadCode" class="serial-btn off" style="background:#555; color:white; cursor: not-allowed;" disabled onclick="uploadCompiledCode()">
+                    <button id="btnUploadNew" class="serial-btn off" style="background:#555; color:white; cursor: not-allowed;" disabled onclick="runUploader()">
                         <i class="fas fa-upload"></i> 2. Kodu Yükle
                     </button>
                 </div>
@@ -134,7 +134,7 @@ void loop() {
                     </div>
                     
                     <div class="header-controls">
-                        <button id="btnUpload" class="serial-btn" style="background:#7000ff; color:white;" onclick="uploadDefaultBlink()">
+                        <button id="btnQuickTest" class="serial-btn" style="background:#7000ff; color:white;" onclick="runQuickTest()">
                             <i class="fas fa-microchip"></i> Test Firmware Yükle
                         </button>
                         
@@ -179,33 +179,38 @@ void loop() {
         </section>
 
     </main>
+    
     <script src="script.js"></script>
+
     <script>
     // --- SERVER & COMPILER KODLARI ---
-    let compiledHexCode = null; // Derlenen kod burada tutulur
+    // Değişkenleri global scope'da çakışmayacak şekilde isimlendirdim
+    let globalHexData = null; 
 
-    async function compileCode() {
+    // 1. Derleme Fonksiyonu
+    async function runCompiler() {
         const editorVal = document.getElementById('cppEditor').value;
-        const statusLbl = document.getElementById('compileStatus');
-        const btnUpload = document.getElementById('btnUploadCode');
+        const statusLbl = document.getElementById('statusLabelNew');
+        const btnUpload = document.getElementById('btnUploadNew');
 
+        console.log("Derleme işlemi başlatıldı..."); // Konsoldan takip et
         statusLbl.innerText = "Durum: Sunucuda derleniyor... (Lütfen bekleyin)";
         statusLbl.style.color = "#40c4ff";
 
         try {
-            // RENDER SUNUCUSUNA İSTEK (Senin oluşturduğun sunucu)
+            // RENDER SUNUCUSUNA İSTEK
             const response = await fetch('https://arduino-backend-ajkr.onrender.com/compile', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ code: editorVal })
             });
 
-            if (!response.ok) throw new Error("Sunucu Hatası");
+            if (!response.ok) throw new Error("Sunucu Hatası: " + response.statusText);
 
             const data = await response.json();
 
             if (data.hex) {
-                compiledHexCode = data.hex;
+                globalHexData = data.hex;
                 statusLbl.innerText = "Durum: BAŞARILI! Kodu yükleyebilirsiniz.";
                 statusLbl.style.color = "#00e676";
                 
@@ -219,34 +224,48 @@ void loop() {
             }
 
         } catch (err) {
-            console.error(err);
+            console.error("Derleme Hatası:", err);
             statusLbl.innerText = "Hata: " + err.message;
             statusLbl.style.color = "#ff5252";
+            alert("Derleme Hatası: " + err.message + "\n(F12 Konsolu kontrol edin)");
         }
     }
 
-    async function uploadCompiledCode() {
-        if (!compiledHexCode) {
+    // 2. Yükleme Fonksiyonu (Derlenen Kodu)
+    async function runUploader() {
+        if (!globalHexData) {
             alert("Önce kodu derlemelisiniz!");
             return;
         }
         
-        const statusLbl = document.getElementById('compileStatus');
+        const statusLbl = document.getElementById('statusLabelNew');
         statusLbl.innerText = "Durum: Port seçiliyor...";
 
         try {
+            if (!navigator.serial) {
+                alert("Tarayıcınız Web Serial API desteklemiyor. Chrome veya Edge kullanın.");
+                return;
+            }
+
             await navigator.serial.requestPort();
             statusLbl.innerText = "Durum: Yükleniyor...";
 
-            const blob = new Blob([compiledHexCode], { type: 'application/octet-stream' });
+            const blob = new Blob([globalHexData], { type: 'application/octet-stream' });
             const reader = new FileReader();
 
             reader.onload = function(event) {
                 const fileBuffer = event.target.result;
+                // AvrgirlArduino kütüphanesinin yüklü olup olmadığını kontrol edelim
+                if (typeof AvrgirlArduino === 'undefined') {
+                    alert("HATA: 'avrgirl-arduino.global.js' kütüphanesi yüklenemedi!");
+                    return;
+                }
+
                 const avrgirl = new AvrgirlArduino({ board: 'uno', debug: true });
 
                 avrgirl.flash(fileBuffer, (error) => {
                     if (error) {
+                        console.error("Flash Hatası:", error);
                         statusLbl.innerText = "Yükleme Hatası: " + error.message;
                         statusLbl.style.color = "#ff5252";
                     } else {
@@ -257,13 +276,14 @@ void loop() {
             };
             reader.readAsArrayBuffer(blob);
         } catch (err) {
+            console.error(err);
             statusLbl.innerText = "İptal edildi veya Hata: " + err;
         }
     }
 
-    // --- HAZIR TEST FIRMWARE (HIZLI BLINK) ---
-    function uploadDefaultBlink() {
-        // Bu senin daha önce verdiğin temiz blink hex kodu
+    // 3. Test Firmware (Hızlı Blink) Fonksiyonu
+    function runQuickTest() {
+        console.log("Hızlı test başlatılıyor...");
         const defaultHex = [
             ":100000000C945C000C946E000C946E000C946E00CA",
             ":100010000C946E000C946E000C946E000C946E00A8",
@@ -338,6 +358,11 @@ void loop() {
 
         reader.onload = function(event) {
             const fileBuffer = event.target.result;
+            // Avrgirl kontrolü
+            if (typeof AvrgirlArduino === 'undefined') {
+                alert("HATA: Kütüphane bulunamadı!");
+                return;
+            }
             const avrgirl = new AvrgirlArduino({ board: 'uno', debug: true });
             avrgirl.flash(fileBuffer, (error) => {
                 if(error) alert("Hata: " + error.message);
@@ -346,9 +371,10 @@ void loop() {
         };
         reader.readAsArrayBuffer(blob);
     }
-</script>
+    </script>
 </body>
 </html>
+
 
 
 
