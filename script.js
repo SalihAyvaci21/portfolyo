@@ -40,6 +40,8 @@ async function fetchGithubRepos() {
 }
 window.onload = fetchGithubRepos;
 
+// ... (Diğer kodlar)
+
 // ==========================================
 // 3. IOT: DERLEME (Backend)
 // ==========================================
@@ -48,17 +50,30 @@ async function compileCode() {
     const statusLbl = document.getElementById('statusLabelNew');
     const btnUpload = document.getElementById('btnUploadNew');
 
-    statusLbl.innerText = "Durum: Sunucuda derleniyor... (Bekleyin)";
+    // !!! BURASI SİZİN ARDUINO CLI BACKEND SERVİSİNİZİN GERÇEK RENDER URL'Sİ OLMALIDIR !!!
+    // Bu, portfolyo URL'si (https://portfolyo-1w2x.onrender.com) DEĞİLDİR.
+    // Lütfen bu satırı kendi CLI servisinizin URL'si ile değiştirin.
+    const ARDUINO_BACKEND_URL = 'https://portfolyo-1w2x.onrender.com'; // ** Render'ın CLI servisinize atadığı URL'yi buraya yazın ** statusLbl.innerText = "Durum: Sunucuda derleniyor... (Bekleyin)";
     statusLbl.style.color = "#40c4ff";
 
     try {
-        const response = await fetch('https://arduino-backend-ajkr.onrender.com/compile', {
+        const response = await fetch(`${ARDUINO_BACKEND_URL}/compile`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ code: editorVal })
         });
 
-        if (!response.ok) throw new Error("Sunucu Hatası");
+        if (!response.ok) {
+            let errorDetail = "Bilinmeyen sunucu hatası.";
+            try {
+                 const errorBody = await response.json();
+                 errorDetail = errorBody.details || errorBody.error || errorDetail;
+            } catch (e) {
+                 errorDetail = await response.text();
+            }
+            throw new Error(`Sunucu Hatası (${response.status}): ${errorDetail.substring(0, 100)}...`);
+        }
+        
         const data = await response.json();
 
         if (data.hex) {
@@ -70,14 +85,15 @@ async function compileCode() {
             btnUpload.style.cursor = "pointer";
             btnUpload.classList.remove('off');
         } else {
-            throw new Error("Hex kodu boş döndü.");
+            throw new Error("Hex kodu boş döndü. Derleme başarısız.");
         }
     } catch (err) {
-        console.error(err);
+        console.error("Derleme hatası:", err);
         statusLbl.innerText = "Hata: " + err.message;
         statusLbl.style.color = "#ff5252";
     }
 }
+// ... (Diğer kodlar)
 
 // ==========================================
 // 4. IOT: YÜKLEME (AVRgirl) - DÜZELTİLDİ
