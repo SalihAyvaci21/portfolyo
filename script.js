@@ -142,7 +142,6 @@ async function compileCode() {
     const statusLbl = document.getElementById('statusLabelNew');
     const btnUpload = document.getElementById('btnUploadNew');
     
-    // Yükleme işlevinin çalışması için sadece Seri Port kontrol kodunu kabul ediyoruz
     const isBasicSerialControl = editorVal.includes('Serial.begin(115200)') && editorVal.includes('Serial.read()'); 
 
     statusLbl.innerText = "Durum: Kod analizi yapılıyor... (Hızlı Derleyici Emülasyonu)";
@@ -179,7 +178,6 @@ async function runUploader(hexDataToUse = null) {
         return;
     }
     
-    // Seri port bağlantısı varsa kes
     if (serialPort) {
         await disconnectSerial(true);
     }
@@ -209,7 +207,7 @@ async function runUploader(hexDataToUse = null) {
 
             avrgirl.flash(fileBuffer, (error) => {
                 if (error) {
-                    alert("YÜKLEME HATA KODU: " + error.message + " -> Konsolu (F12) kontrol edin.");
+                    alert("YÜKLEME HATA KODU: " + error.message + " -> Lütfen tarayıcı konsolunu (F12) kontrol edin.");
                 } else {
                     alert("BAŞARILI! Kod Yüklendi. Şimdi 'Bağlan' diyip kontrol edebilirsiniz.");
                     const badge = document.getElementById('statusBadge');
@@ -380,7 +378,6 @@ async function compileBlocklyCode(btn) {
     }
 
     const originalText = btn.innerHTML;
-    // Blok stüdyosu sonuçlarını C++ Editör alanında gösteriyoruz
     const statusLbl = document.getElementById('statusLabelNew'); 
 
     statusLbl.innerText = "Durum: Blok kod analizi ve simülasyonu yapılıyor...";
