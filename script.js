@@ -88,6 +88,7 @@ function showSection(id, btn) {
     btn.classList.add('active');
     
     if (id !== 'games') stopCurrentGame();
+    
     // Blockly çalışma alanını temizle
     if (id !== 'blocks' && blocklyWorkspace) {
         // Blok sayfasından çıkınca kaynakları serbest bırak
@@ -98,8 +99,10 @@ function showSection(id, btn) {
 
 // YENİ: Blockly bölümünü gösteren ve başlatan fonksiyon
 function showBlocksSection(btn) {
+    // Önce sekme değiştirilir
     showSection('blocks', btn);
-    // Eğer çalışma alanı henüz başlatılmadıysa başlat
+    
+    // Ardından, sekme görünür hale geldikten sonra Blockly başlatılır
     if (!blocklyWorkspace) {
         initBlockly();
     }
@@ -138,24 +141,23 @@ async function compileCode() {
     const statusLbl = document.getElementById('statusLabelNew');
     const btnUpload = document.getElementById('btnUploadNew');
     
-    // Basit bir analiz: Temel döngü/setup dışında bir şey var mı?
-    const isBasicCode = editorVal.includes('digitalWrite(13') && editorVal.includes('delay(') && !editorVal.includes('Serial.available'); 
+    // Basit bir analiz (Sadece demoda kullanılan seri port kontrol kodunu kabul et)
+    const isBasicSerialControl = editorVal.includes('Serial.begin(115200)') && editorVal.includes('Serial.read()'); 
 
     statusLbl.innerText = "Durum: Kod analizi yapılıyor... (Hızlı Derleyici Emülasyonu)";
     statusLbl.style.color = "#40c4ff";
 
     await new Promise(resolve => setTimeout(resolve, 1500));
 
-    // Bu demoda sadece hazır seri port dinleyen kodu kullanıyoruz.
-    // Kullanıcı çok karmaşık bir şey yazarsa uyarı verelim.
-    if (!editorVal.includes('Serial.begin(115200)') || !editorVal.includes('Serial.read()')) {
-        statusLbl.innerText = "Hata: Gömülü derleyici sadece Seri Port kontrol kodlarını destekler.";
+    if (!isBasicSerialControl) {
+        statusLbl.innerText = "Hata: Gömülü derleyici (demo) sadece temel Serial.read() kodunu destekler.";
         statusLbl.style.color = "#ff5252";
         btnUpload.disabled = true;
         btnUpload.style.background = "#555";
         btnUpload.style.cursor = "not-allowed";
         return;
     }
+
 
     compiledHexCode = UNIVERSAL_HEX; 
     statusLbl.innerText = "Durum: BAŞARILI! Kod yüklenebilir.";
@@ -233,7 +235,6 @@ async function runQuickTest() {
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Hazırlanıyor...';
     }
 
-    // Doğrudan JS içindeki HEX kodunu kullan
     setTimeout(async () => {
         if(btn) btn.innerHTML = '<i class="fas fa-microchip"></i> Yükleniyor...';
         await runUploader(UNIVERSAL_HEX);
@@ -351,10 +352,14 @@ async function runBlock(command) {
 // 7. BLOCKLY ENTEGRASYONU VE KOD ÜRETİMİ (C++)
 // ==========================================
 function initBlockly() {
+    // Çalışma alanı zaten başlatıldıysa veya Blockly kütüphanesi yüklenmediyse dur
+    if (blocklyWorkspace || typeof Blockly === 'undefined') {
+        return;
+    }
     
-    // Blockly çalışma alanını başlat
-    blocklyWorkspace = Blockly.inject('blocklyDiv', {
-        toolbox: `<xml id="toolbox" style="display: none">
+    // ToolBox XML içeriği
+    const toolboxXml = `
+        <xml id="toolbox" style="display: none">
             <category name="Kontrol" colour="#FFD700">
                 <block type="controls_if"></block>
                 <block type="controls_repeat_ext">
@@ -374,7 +379,11 @@ function initBlockly() {
                 <block type="pin_mode"></block>
                 <block type="serial_print"></block>
             </category>
-        </xml>`,
+        </xml>
+    `;
+    
+    blocklyWorkspace = Blockly.inject('blocklyDiv', {
+        toolbox: toolboxXml,
         scrollbars: true,
         trashcan: true,
         horizontalLayout: false,
@@ -388,7 +397,8 @@ function initBlockly() {
         }
     });
 
-    // --- ÖZEL ARDUINO BLOK TANIMLARI (Çok Basit Örnekler) ---
+    // --- ÖZEL ARDUINO BLOK TANIMLARI ---
+    
     // Pin Mode
     Blockly.Blocks['pin_mode'] = {
         init: function() {
@@ -401,7 +411,6 @@ function initBlockly() {
             this.setNextStatement(true, null);
             this.setColour(230);
             this.setTooltip("Pin'i giriş veya çıkış olarak ayarlar.");
-            this.setHelpUrl("");
         }
     };
     Blockly.JavaScript['pin_mode'] = function(block) {
@@ -423,7 +432,6 @@ function initBlockly() {
             this.setNextStatement(true, null);
             this.setColour(230);
             this.setTooltip("Dijital pinin durumunu ayarlar (YÜKSEK/DÜŞÜK).");
-            this.setHelpUrl("");
         }
     };
     Blockly.JavaScript['digital_write'] = function(block) {
@@ -443,7 +451,6 @@ function initBlockly() {
             this.setNextStatement(true, null);
             this.setColour(180);
             this.setTooltip("Belirtilen süre kadar bekler.");
-            this.setHelpUrl("");
         }
     };
     Blockly.JavaScript['pin_delay'] = function(block) {
@@ -457,14 +464,26 @@ function initBlockly() {
         if (event.isUi || event.type == Blockly.Events.VIEWPORT_CHANGE) {
             return;
         }
-        const generatedCode = Blockly.JavaScript.workspaceToCode(blocklyWorkspace);
+        let generatedCode = Blockly.JavaScript.workspaceToCode(blocklyWorkspace);
+        
+        // Setup ve Loop yapısını ekleyerek tam Arduino kodu oluşturma (Çok Basitleştirilmiş)
+        if(generatedCode) {
+            generatedCode = "void setup() {\n  // Başlangıç ayarları\n" 
+                + generatedCode.match(/pinMode\([^;]*;\n/g)?.join('') || ""
+                + "}\n\nvoid loop() {\n  // Sürekli çalışan kod\n" 
+                + generatedCode.replace(/pinMode\([^;]*;\n/g, '') 
+                + "}";
+        }
+
+
         document.getElementById('generatedCode').innerText = generatedCode || "// Blokları buraya sürükle...";
     }
+    
     blocklyWorkspace.addChangeListener(updateCode);
     
-    // Başlangıçta örnek bir kod ekle (Setup/Loop yapısını simüle etmek için)
+    // Başlangıçta örnek bir kod ekle (Blink)
     const initialXml = `<xml xmlns="https://developers.google.com/blockly/xml">
-        <block type="pin_mode" id="248" x="20" y="20">
+        <block type="pin_mode" id="init_pin" x="20" y="20">
             <field name="PIN">13</field>
             <field name="MODE">OUTPUT</field>
             <next>
@@ -502,13 +521,15 @@ function initBlockly() {
     </xml>`;
     Blockly.Xml.domToWorkspace(Blockly.Xml.textToDom(initialXml), blocklyWorkspace);
 
-    // Kodu ilk açılışta göster
+    // İlk kodu oluştur ve göster
     updateCode({});
 }
 
 // ==========================================
 // 8. OYUNLAR (SNAKE, TETRIS, MAZE)
 // ==========================================
+// ... (Oyun kodları değişmediği için kısaltılmıştır)
+
 let canvas = document.getElementById('gameCanvas');
 let ctx = canvas ? canvas.getContext('2d') : null;
 let gameInterval, currentGame, score = 0;
@@ -596,7 +617,7 @@ function initMaze() {
     let p = { x: 1, y: 1 }, g = { x: 8, y: 5 };
     function draw() {
         ctx.fillStyle = '#000'; ctx.fillRect(0, 0, 400, 400);
-        for (let y = 0; y < 7; y++) for (let x = 0; x < 10; x++) { if (map[y][x] == 1) { ctx.fillStyle = '#03c'; ctx.fillRect(x * 40, y * 40, 40, 40); } else if (map[y][x] == 0) { ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x * 40 + 20, y * 40 + 20, 4, 0, 6.28); ctx.fill(); } }
+        for (let y = 0; y < 7; y++) for (let x = 0; x < 10; x++) { if (map[y][x] == 1) { ctx.fillStyle = '#03c'; ctx.fillRect(x * 40, y * 40, 40, 40); } else if (map[y][x] == 0) { ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x * 40 + 20, p.y * 40 + 20, 4, 0, 6.28); ctx.fill(); } }
         ctx.fillStyle = '#ff0'; ctx.beginPath(); ctx.arc(p.x * 40 + 20, p.y * 40 + 20, 15, 0.6, 5.6); ctx.fill(); ctx.fillStyle = '#f00'; ctx.fillRect(g.x * 40 + 5, g.y * 40 + 5, 30, 30);
     }
     gameInterval = setInterval(() => {
