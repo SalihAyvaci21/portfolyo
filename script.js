@@ -43,16 +43,22 @@ window.onload = fetchGithubRepos;
 // ==========================================
 // 3. IOT: DERLEME (Backend)
 // ==========================================
+// ==========================================
+// 3. IOT: DERLEME (Backend)
+// ==========================================
 async function compileCode() {
     const editorVal = document.getElementById('cppEditor').value;
     const statusLbl = document.getElementById('statusLabelNew');
     const btnUpload = document.getElementById('btnUploadNew');
 
+    // !!! BURAYI KENDİ RENDER URL'NİZ İLE DEĞİŞTİRİN !!!
+    const RENDER_SERVER_URL = 'https://portfolyo-1w2x.onrender.com'; // Örnek URL
+
     statusLbl.innerText = "Durum: Sunucuda derleniyor... (Bekleyin)";
     statusLbl.style.color = "#40c4ff";
 
     try {
-        const response = await fetch('https://arduino-backend-ajkr.onrender.com/compile', {
+        const response = await fetch(`${https://portfolyo-1w2x.onrender.com}/compile`, { // URL Güncellendi
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ code: editorVal })
