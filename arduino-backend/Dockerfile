@@ -1,31 +1,46 @@
-# Node.js tabanlı bir Linux imajı kullan
-FROM node:18-bullseye
+# 1. Aşama: Gerekli araçları kurmak için temel imaj
+FROM node:18-slim as builder
 
-# Gerekli sistem araçlarını yükle
-RUN apt-get update && apt-get install -y \
-    curl \
-    python3 \
-    && rm -rf /var/lib/apt/lists/*
+# Arduino CLI'ı indirmek için bağımlılıkları yükle
+RUN apt-get update && \
+    apt-get install -y wget curl unzip libstdc++6 && \
+    rm -rf /var/lib/apt/lists/*
 
-# Arduino CLI Kurulumu
-RUN curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh
+# Arduino CLI'ı indir ve kur (En son stabil versiyonu kullanın)
+ARG ARDUINO_CLI_VERSION="0.35.2"
+ENV ARDUINO_CLI_URL="https://downloads.arduino.cc/arduino-cli/arduino-cli_${ARDUINO_CLI_VERSION}_Linux_64bit.tar.gz"
 
-# Arduino AVR Çekirdeğini İndir (Uno için gerekli)
+RUN wget ${ARDUINO_CLI_URL} -O /tmp/arduino-cli.tar.gz && \
+    tar -xf /tmp/arduino-cli.tar.gz -C /usr/bin/ && \
+    rm /tmp/arduino-cli.tar.gz
+
+# Arduino CLI ayarlarını ve çekirdek (core) dosyalarını ayarla
+RUN arduino-cli config init
+
+# avr (Arduino Uno vb.) çekirdeğini yükle
 RUN arduino-cli core update-index
 RUN arduino-cli core install arduino:avr
 
-# Çalışma klasörünü ayarla
-WORKDIR /app
+# 2. Aşama: Uygulama kodunu ekle ve Node.js sunucusunu çalıştır
+FROM node:18-slim
 
-# Paket listesini kopyala ve yükle
-COPY package.json ./
+# Önceki aşamadan Arduino CLI ve core dosyalarını kopyala
+# /root/.arduino15 varsayılan çekirdeklerin yüklü olduğu dizindir
+COPY --from=builder /usr/bin/arduino-cli /usr/bin/arduino-cli
+COPY --from=builder /root/.arduino15 /root/.arduino15
+
+# Uygulama için gerekli dosyaları kopyala
+WORKDIR /usr/src/app
+COPY package.json .
+# Bağımlılıkları yükle
 RUN npm install
 
-# Sunucu dosyasını kopyala
-COPY server.js ./
+# Server kodunu kopyala
+COPY server.js .
 
-# Geçici derleme klasörü oluştur
-RUN mkdir sketch_temp
+# Sunucunun dinleyeceği portu ayarla (Render'ın ortam değişkeni)
+ENV PORT 3000
+EXPOSE 3000
 
-# Sunucuyu başlat
+# Uygulamayı başlat
 CMD ["node", "server.js"]
