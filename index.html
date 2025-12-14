@@ -97,65 +97,79 @@
 
         <section id="iot">
             <h1>🤖 Robotik Kodlama Laboratuvarı</h1>
-            <p>Arduino'nuzu bağlayın ve kod yazmadan bloklarla kontrol edin!</p>
+            <p>Arduino'nuzu USB ile bağlayın ve kod yazmadan bloklarla yönetin.</p>
             
-            <div class="grid">
-                <div class="card" style="grid-column: span 1 / -1; border-color: #00ff88;">
-                    <div class="card-header">
-                        <h3><i class="fas fa-gamepad"></i> Blok Kontrol Paneli</h3>
-                        <div style="display:flex; gap:10px;">
-                                <button id="btnConnect" class="serial-btn connect" onclick="connectSerial()">
-                                    <i class="fas fa-usb"></i> Arduino'yu Bağla
-                                </button>
-    
-                                <button id="btnDisconnect" class="serial-btn off" onclick="disconnectSerial()" style="display:none; background-color:#ff0055; color:white;">
-                                    <i class="fas fa-unlink"></i> Kes
-                                </button>
-                        </div>
+            <div class="card" style="border-top: 4px solid var(--primary);">
+                <div class="card-header" style="border-bottom: 1px solid #333; padding-bottom: 15px; margin-bottom: 0;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <h3><i class="fas fa-cubes"></i> Blok Stüdyosu</h3>
+                        <span id="statusBadge" class="status-badge"><i class="fas fa-circle" style="font-size:0.6rem;"></i> Bağlantı Yok</span>
+                    </div>
+                    
+                    <div class="header-controls">
+                        <button id="btnConnect" class="serial-btn connect" onclick="connectSerial()">
+                            <i class="fas fa-plug"></i> Bağlan
+                        </button>
+                        <button id="btnDisconnect" class="serial-btn off" onclick="disconnectSerial()" style="display:none; background:#ff0055; color:white;">
+                            <i class="fas fa-power-off"></i> Kes
+                        </button>
+                    </div>
+                </div>
 
-                    <div class="block-container" style="margin-top:20px; display:flex; flex-direction:column; gap:15px; align-items:flex-start;">
+                <div class="iot-panel">
+                    
+                    <div class="block-list">
                         
-                        <div class="code-block" style="background:#4C97FF;">
-                            <i class="fas fa-play"></i>
-                            <span>Tıklandığında:</span>
+                        <div class="code-block" style="background: linear-gradient(90deg, #4C97FF, #2D7DE0);">
+                            <i class="fas fa-lightbulb"></i>
+                            <span>Pin</span>
                             <select id="pinSelectOn" class="block-input">
-                                <option value="13">Pin 13 (Dahili LED)</option>
-                                <option value="12">Pin 12</option>
-                                <option value="11">Pin 11</option>
+                                <option value="13">13 (Dahili)</option>
+                                <option value="12">12</option>
+                                <option value="11">11</option>
                             </select>
-                            <span>numaralı LED'i</span>
+                            <span>LED'ini</span>
                             <strong>YAK</strong>
-                            <button class="run-btn" onclick="runBlock('ON')">ÇALIŞTIR ▶</button>
+                            <button class="run-btn" title="Çalıştır" onclick="runBlock('ON')"><i class="fas fa-play"></i></button>
                         </div>
 
-                        <div class="code-block" style="background:#FF6680;">
-                            <i class="fas fa-stop"></i>
-                            <span>Tıklandığında:</span>
+                        <div class="code-block" style="background: linear-gradient(90deg, #FF6680, #E02D4C);">
+                            <i class="far fa-lightbulb"></i>
+                            <span>Pin</span>
                             <select id="pinSelectOff" class="block-input">
-                                <option value="13">Pin 13 (Dahili LED)</option>
-                                <option value="12">Pin 12</option>
-                                <option value="11">Pin 11</option>
+                                <option value="13">13 (Dahili)</option>
+                                <option value="12">12</option>
+                                <option value="11">11</option>
                             </select>
-                            <span>numaralı LED'i</span>
+                            <span>LED'ini</span>
                             <strong>SÖNDÜR</strong>
-                            <button class="run-btn" onclick="runBlock('OFF')">ÇALIŞTIR ▶</button>
+                            <button class="run-btn" title="Çalıştır" onclick="runBlock('OFF')"><i class="fas fa-play"></i></button>
                         </div>
 
-                        <div class="code-block" style="background:#FFBF00;">
+                        <div class="code-block" style="background: linear-gradient(90deg, #FFBF00, #E0A800);">
                             <i class="fas fa-sync-alt"></i>
                             <span>Sürekli Tekrarla:</span>
                             <select id="pinSelectBlink" class="block-input">
-                                <option value="13">Pin 13</option>
+                                <option value="13">13</option>
                             </select>
-                            <span>LED'ini yakıp söndür</span>
-                            <button class="run-btn" onclick="toggleBlink()">BAŞLAT / DURDUR</button>
+                            <span>Pinini Yak/Söndür</span>
+                            <button class="run-btn" title="Başlat/Durdur" onclick="toggleBlink()"><i class="fas fa-power-off"></i></button>
+                        </div>
+
+                    </div>
+
+                    <div class="console-wrapper">
+                        <div class="console-header">
+                            <span><i class="fas fa-terminal"></i> Seri Port Konsolu</span>
+                            <span style="font-size:0.7rem; opacity:0.7;">115200 Baud</span>
+                        </div>
+                        <div id="serialConsole" class="serial-console">
+                            > Sistem hazır.<br>
+                            > Lütfen yukarıdan "Bağlan" butonuna basın.<br>
+                            > ...
                         </div>
                     </div>
 
-                    <div id="serialConsole" class="serial-console" style="margin-top:20px; height:100px;">
-                        > Hazır. Lütfen önce "Arduino'yu Bağla" butonuna basın.<br>
-                        > Not: Arduino içinde "Salih Eğitim Firmware" yüklü olmalıdır.
-                    </div>
                 </div>
             </div>
         </section>
@@ -165,4 +179,5 @@
     <script src="script.js"></script>
 </body>
 </html>
+
 
