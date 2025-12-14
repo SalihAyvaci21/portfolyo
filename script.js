@@ -53,7 +53,7 @@ async function compileCode() {
     // !!! BURASI SİZİN ARDUINO CLI BACKEND SERVİSİNİZİN GERÇEK RENDER URL'Sİ OLMALIDIR !!!
     // Bu, portfolyo URL'si (https://portfolyo-1w2x.onrender.com) DEĞİLDİR.
     // Lütfen bu satırı kendi CLI servisinizin URL'si ile değiştirin.
-    const ARDUINO_BACKEND_URL = 'https://portfolyo-1w2x.onrender.com'; // ** Render'ın CLI servisinize atadığı URL'yi buraya yazın ** statusLbl.innerText = "Durum: Sunucuda derleniyor... (Bekleyin)";
+    const ARDUINO_BACKEND_URL = 'https://arduino-backend-et1z.onrender.com'; // ** Render'ın CLI servisinize atadığı URL'yi buraya yazın ** statusLbl.innerText = "Durum: Sunucuda derleniyor... (Bekleyin)";
     statusLbl.style.color = "#40c4ff";
 
     try {
