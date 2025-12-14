@@ -120,4 +120,275 @@ void loop() {
                         <i class="fas fa-cog"></i> 1. Derle (Server)
                     </button>
                     
-                    <button id="btnUploadNew" class="serial-btn off" style="background:#555; color:white; cursor:
+                    <button id="btnUploadNew" class="serial-btn off" style="background:#555; color:white; cursor: not-allowed;" disabled onclick="runUploader()">
+                        <i class="fas fa-upload"></i> 2. Kodu Yükle
+                    </button>
+                </div>
+            </div>
+
+            <div class="card" style="border-top: 4px solid var(--primary);">
+                <div class="card-header" style="border-bottom: 1px solid #333; padding-bottom: 15px; margin-bottom: 0;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <h3><i class="fas fa-cubes"></i> Blok Stüdyosu & Kontrol</h3>
+                        <span id="statusBadge" class="status-badge"><i class="fas fa-circle" style="font-size:0.6rem;"></i> Bağlantı Yok</span>
+                    </div>
+                    
+                    <div class="header-controls">
+                        <button id="btnQuickTest" class="serial-btn" style="background:#7000ff; color:white;" onclick="runQuickTest()">
+                            <i class="fas fa-microchip"></i> Test Firmware Yükle
+                        </button>
+                        
+                        <button id="btnConnect" class="serial-btn connect" onclick="connectSerial()">
+                            <i class="fas fa-plug"></i> Bağlan (Bloklar İçin)
+                        </button>
+                        <button id="btnDisconnect" class="serial-btn off" onclick="disconnectSerial()" style="display:none; background:#ff0055; color:white;">
+                            <i class="fas fa-power-off"></i> Kes
+                        </button>
+                    </div>
+                </div>
+
+                <div class="iot-panel">
+                    
+                    <div class="block-list">
+                        <div class="code-block" style="background: linear-gradient(90deg, #4C97FF, #2D7DE0);">
+                            <i class="fas fa-lightbulb"></i>
+                            <span>Pin</span>
+                            <select id="pinSelectOn" class="block-input"><option value="13">13</option><option value="12">12</option><option value="11">11</option></select>
+                            <span>LED'ini</span> <strong>YAK</strong>
+                            <button class="run-btn" onclick="runBlock('ON')"><i class="fas fa-play"></i></button>
+                        </div>
+
+                        <div class="code-block" style="background: linear-gradient(90deg, #FF6680, #E02D4C);">
+                            <i class="far fa-lightbulb"></i>
+                            <span>Pin</span>
+                            <select id="pinSelectOff" class="block-input"><option value="13">13</option><option value="12">12</option><option value="11">11</option></select>
+                            <span>LED'ini</span> <strong>SÖNDÜR</strong>
+                            <button class="run-btn" onclick="runBlock('OFF')"><i class="fas fa-play"></i></button>
+                        </div>
+                    </div>
+
+                    <div class="console-wrapper">
+                        <div class="console-header"><span><i class="fas fa-terminal"></i> Seri Port Konsolu</span><span style="font-size:0.7rem; opacity:0.7;">115200 Baud</span></div>
+                        <div id="serialConsole" class="serial-console">
+                            > Sistem hazır.<br>> Kod yazıp yükleyebilir veya "Bağlan" diyerek blokları kullanabilirsiniz.
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+    </main>
+    
+    <script src="script.js"></script>
+
+    <script>
+    // --- GLOBAL DEĞİŞKENLER ---
+    let compiledHexCode = null; // Derlenen kod
+    let serialPort = null;      // Açık port
+    let serialWriter = null;    // Veri gönderme aracı
+
+    // ============================================================
+    // 1. BÖLÜM: DERLEME VE YÜKLEME (Backend)
+    // ============================================================
+    async function compileCode() {
+        const editorVal = document.getElementById('cppEditor').value;
+        const statusLbl = document.getElementById('statusLabelNew');
+        const btnUpload = document.getElementById('btnUploadNew');
+
+        statusLbl.innerText = "Durum: Sunucuda derleniyor... (Bekleyin)";
+        statusLbl.style.color = "#40c4ff";
+
+        try {
+            const response = await fetch('https://arduino-backend-ajkr.onrender.com/compile', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code: editorVal })
+            });
+
+            if (!response.ok) throw new Error("Sunucu Hatası");
+            const data = await response.json();
+
+            if (data.hex) {
+                compiledHexCode = data.hex;
+                statusLbl.innerText = "Durum: BAŞARILI! Kodu yükleyebilirsiniz.";
+                statusLbl.style.color = "#00e676";
+                btnUpload.disabled = false;
+                btnUpload.style.background = "#ff9800";
+                btnUpload.style.cursor = "pointer";
+                btnUpload.classList.remove('off');
+            } else {
+                throw new Error("Hex kodu boş döndü.");
+            }
+        } catch (err) {
+            console.error(err);
+            statusLbl.innerText = "Hata: " + err.message;
+            statusLbl.style.color = "#ff5252";
+        }
+    }
+
+    async function runUploader(hexDataToUse = null) {
+        // Eğer fonksiyona özel hex verilmediyse, derlenmiş olanı kullan
+        const hexToFlash = hexDataToUse || compiledHexCode;
+
+        if (!hexToFlash) {
+            alert("Önce kodu derlemelisiniz veya Test Firmware Yüklemeyi denemelisiniz!");
+            return;
+        }
+        
+        // Eğer port açıksa kapatmayı dene (Çakışmayı önlemek için)
+        if (serialPort) {
+            try { await serialPort.close(); serialPort = null; } catch(e){}
+        }
+
+        const statusLbl = document.getElementById('statusLabelNew') || document.getElementById('statusBadge');
+        if(statusLbl) statusLbl.innerText = "Port Seçiliyor...";
+
+        try {
+            await navigator.serial.requestPort(); // Port izni iste
+            
+            const blob = new Blob([hexToFlash], { type: 'application/octet-stream' });
+            const reader = new FileReader();
+
+            reader.onload = function(event) {
+                const fileBuffer = event.target.result;
+                const avrgirl = new AvrgirlArduino({ board: 'uno', debug: true });
+
+                avrgirl.flash(fileBuffer, (error) => {
+                    if (error) {
+                        alert("Yükleme Hatası: " + error.message);
+                    } else {
+                        alert("BAŞARILI! Kod Yüklendi. Şimdi 'Bağlan' diyip kontrol edebilirsiniz.");
+                        // Yükleme bitince statusu güncelle
+                        const badge = document.getElementById('statusBadge');
+                        if(badge) badge.innerHTML = '<i class="fas fa-check"></i> Yüklendi';
+                        
+                        // Yükleme tamamlandığında Test butonu kilitli kalmasın
+                        const testBtn = document.getElementById('btnQuickTest');
+                        if(testBtn && testBtn.disabled) {
+                            testBtn.disabled = false;
+                            testBtn.innerHTML = '<i class="fas fa-microchip"></i> Test Firmware Yükle';
+                        }
+                    }
+                });
+            };
+            reader.readAsArrayBuffer(blob);
+        } catch (err) {
+            alert("İşlem İptal Edildi: " + err);
+            // İptal durumunda Test butonunu düzelt
+            const testBtn = document.getElementById('btnQuickTest');
+            if(testBtn) {
+                testBtn.disabled = false;
+                testBtn.innerHTML = '<i class="fas fa-microchip"></i> Test Firmware Yükle';
+            }
+        }
+    }
+
+    // ============================================================
+    // 2. BÖLÜM: TEST FİRMWARE YÜKLEME (FİRMWARE.HEX OKUMA)
+    // ============================================================
+    async function runQuickTest() {
+        const btn = document.getElementById('btnQuickTest');
+        const statusLbl = document.getElementById('statusBadge');
+
+        // 1. Butonun durumunu güncelle (Yükleniyor efekti)
+        if(btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> İndiriliyor...';
+        }
+        if(statusLbl) statusLbl.innerHTML = '<span style="color:orange">Dosya okunuyor...</span>';
+
+        try {
+            // 2. firmware.hex dosyasını sunucudan/klasörden metin olarak çek
+            // (firmware.hex dosyası index.html ile aynı klasörde olmalı)
+            const response = await fetch('firmware.hex');
+            
+            if (!response.ok) {
+                throw new Error("firmware.hex dosyası bulunamadı! (HTTP " + response.status + ")");
+            }
+            
+            // Hex dosyasının içeriğini metin (string) olarak al
+            const hexText = await response.text();
+
+            // 3. Mevcut yükleyici fonksiyonuna bu metni gönder
+            if(btn) btn.innerHTML = '<i class="fas fa-microchip"></i> Yükleniyor...';
+            
+            // runUploader'ı çağır ve hex verisini içine at
+            await runUploader(hexText);
+
+        } catch (err) {
+            console.error(err);
+            alert("Hata oluştu: " + err.message);
+            if(statusLbl) statusLbl.innerHTML = '<span style="color:red">Hata!</span>';
+            // Hata durumunda butonu hemen aç
+            if(btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-microchip"></i> Test Firmware Yükle';
+            }
+        }
+    }
+
+    // ============================================================
+    // 3. BÖLÜM: SERİ PORT BAĞLANTISI VE KONTROL (Canlı Etkileşim)
+    // ============================================================
+    
+    async function connectSerial() {
+        if (!navigator.serial) {
+            alert("Tarayıcınız Seri Port desteklemiyor. Chrome veya Edge kullanın.");
+            return;
+        }
+
+        try {
+            // 1. Port İste
+            serialPort = await navigator.serial.requestPort();
+            
+            // 2. Portu Aç (Arduino standart hızı 115200 veya 9600 olabilir, biz 115200 kullanacağız)
+            await serialPort.open({ baudRate: 115200 });
+
+            // 3. Yazıcıyı (Writer) Hazırla
+            const textEncoder = new TextEncoderStream();
+            const writableStreamClosed = textEncoder.readable.pipeTo(serialPort.writable);
+            serialWriter = textEncoder.writable.getWriter();
+
+            // 4. Arayüzü Güncelle
+            const badge = document.getElementById('statusBadge');
+            badge.innerHTML = '<i class="fas fa-circle" style="color:#00e676; font-size:0.6rem;"></i> Bağlandı';
+            badge.style.color = "#00e676";
+            
+            // Konsola yaz
+            document.getElementById('serialConsole').innerHTML += "<br>> <span style='color:#0f0'>Bağlantı Başarılı!</span> Butonları kullanabilirsiniz.";
+
+        } catch (err) {
+            console.error(err);
+            alert("Bağlantı Hatası: " + err);
+        }
+    }
+
+    // Butonlara basılınca çalışan fonksiyon
+    async function runBlock(command) {
+        if (!serialWriter) {
+            alert("Önce 'Bağlan' butonuna basarak bağlantıyı kurmalısınız!");
+            return;
+        }
+
+        try {
+            // Arduino'ya tek karakterlik komut gönderiyoruz
+            // '1' -> Yak
+            // '0' -> Söndür
+            let charToSend = "";
+            
+            if (command === 'ON') charToSend = "1";
+            if (command === 'OFF') charToSend = "0";
+            
+            await serialWriter.write(charToSend);
+            
+            // Konsola Log Düş
+            document.getElementById('serialConsole').innerHTML += `<br>> Komut Gönderildi: ${command}`;
+            
+        } catch (err) {
+            alert("Gönderme Hatası: " + err);
+        }
+    }
+</script>
+</body>
+</html>
