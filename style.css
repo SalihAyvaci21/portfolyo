@@ -69,3 +69,36 @@ p { line-height: 1.6; color: var(--text-muted); }
 .serial-btn.connect { background: var(--secondary); }
 .status-badge { font-size: 0.8rem; padding: 5px 10px; border-radius: 12px; background: #333; color: #aaa; display: flex; align-items: center; gap: 5px; }
 .status-badge.connected { color: #00ff88; background: rgba(0, 255, 136, 0.1); }
+
+/* --- BLOCKS STYLES --- */
+.blocks-container {
+    display: flex;
+    gap: 20px;
+    height: 600px; /* Çalışma alanının yüksekliğini belirler */
+    margin-top: 20px;
+}
+
+#blocklyDiv {
+    flex: 3; /* Blok alanı daha geniş olsun */
+    min-width: 400px;
+}
+
+.code-output {
+    flex: 1; /* Kod çıktısı alanı */
+    background: var(--card-bg);
+    padding: 15px;
+    border-radius: 12px;
+    border: 1px solid #333;
+}
+
+#generatedCode {
+    background: #0d0d0d;
+    color: #00ff88;
+    padding: 10px;
+    border-radius: 4px;
+    overflow-x: auto;
+    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
+    min-height: 200px;
+    white-space: pre-wrap; /* Uzun kod satırlarını alt satıra indirir */
+}
