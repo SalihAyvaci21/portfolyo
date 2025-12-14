@@ -7,19 +7,14 @@ let serialWriter = null;    // Veri gönderme aracı
 let blinkInterval = null;   // Blink zamanlayıcısı
 
 // ==========================================
-// 1. NAVİGASYON VE SAYFA GEÇİŞLERİ (Düzeltildi)
+// 1. NAVİGASYON VE SAYFA GEÇİŞLERİ
 // ==========================================
 function showSection(id, btn) {
     document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
     document.getElementById(id).classList.add('active');
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-    // Eğer bir link değilse (örneğin CV linki), butona active class'ı eklenir.
-    if (btn && btn.classList) {
-        btn.classList.add('active');
-    }
-    
-    // Oyun bölümünden çıkınca oyunu durdur
-    if (id !== 'games') stopCurrentGame(); 
+    btn.classList.add('active');
+    if (id !== 'games') stopCurrentGame();
 }
 
 // ==========================================
@@ -53,30 +48,17 @@ async function compileCode() {
     const statusLbl = document.getElementById('statusLabelNew');
     const btnUpload = document.getElementById('btnUploadNew');
 
-    // !!! BU ADRESİ SİZİN GERÇEK ARDUINO CLI BACKEND URL'NİZ İLE DEĞİŞTİRİN !!!
-    const ARDUINO_BACKEND_URL = 'https://portfolyo-1w2x.onrender.com'; // Örnek URL
-
     statusLbl.innerText = "Durum: Sunucuda derleniyor... (Bekleyin)";
     statusLbl.style.color = "#40c4ff";
 
     try {
-        const response = await fetch(`${ARDUINO_BACKEND_URL}/compile`, {
+        const response = await fetch('https://arduino-backend-ajkr.onrender.com/compile', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ code: editorVal })
         });
 
-        if (!response.ok) {
-            let errorDetail = "Bilinmeyen sunucu hatası.";
-            try {
-                 const errorBody = await response.json();
-                 errorDetail = errorBody.details || errorBody.error || errorDetail;
-            } catch (e) {
-                 errorDetail = await response.text();
-            }
-            throw new Error(`Sunucu Hatası (${response.status}): ${errorDetail.substring(0, 50)}...`);
-        }
-        
+        if (!response.ok) throw new Error("Sunucu Hatası");
         const data = await response.json();
 
         if (data.hex) {
@@ -88,17 +70,17 @@ async function compileCode() {
             btnUpload.style.cursor = "pointer";
             btnUpload.classList.remove('off');
         } else {
-            throw new Error("Hex kodu boş döndü. Derleme başarısız.");
+            throw new Error("Hex kodu boş döndü.");
         }
     } catch (err) {
-        console.error("Derleme hatası:", err);
+        console.error(err);
         statusLbl.innerText = "Hata: " + err.message;
         statusLbl.style.color = "#ff5252";
     }
 }
 
 // ==========================================
-// 4. IOT: YÜKLEME (AVRgirl)
+// 4. IOT: YÜKLEME (AVRgirl) - DÜZELTİLDİ
 // ==========================================
 async function runUploader(hexDataToUse = null) {
     const hexToFlash = hexDataToUse || compiledHexCode;
@@ -108,15 +90,21 @@ async function runUploader(hexDataToUse = null) {
         return;
     }
     
+    // Eğer bağlantı varsa önce onu tamamen kes
+    // Çünkü AVRGirl portu tek başına kullanmak ister.
     if (serialPort) {
         console.log("Mevcut bağlantı yükleme için kesiliyor...");
-        await disconnectSerial(true);
+        await disconnectSerial(true); // true = UI güncelleme yapmadan sessizce kes
     }
 
     const statusLbl = document.getElementById('statusLabelNew') || document.getElementById('statusBadge');
     if(statusLbl) statusLbl.innerText = "Port Seçiliyor...";
 
     try {
+        // DİKKAT: Burada navigator.serial.requestPort() KULLANMIYORUZ.
+        // AVRGirl kütüphanesi flash() fonksiyonu içinde kendi port seçim ekranını açacak.
+        // Böylece 2 kere sorma sorunu çözülür.
+        
         const blob = new Blob([hexToFlash], { type: 'application/octet-stream' });
         const reader = new FileReader();
 
@@ -149,10 +137,6 @@ async function runUploader(hexDataToUse = null) {
         const testBtn = document.getElementById('btnQuickTest');
         if(testBtn) {
             testBtn.disabled = false;
-            btnUpload.disabled = true; // Yükleme butonunu tekrar kilitle
-            btnUpload.style.background = "#333";
-            btnUpload.style.cursor = "not-allowed";
-            btnUpload.classList.add('off');
             testBtn.innerHTML = '<i class="fas fa-microchip"></i> Test Firmware Yükle';
         }
     }
@@ -172,14 +156,14 @@ async function runQuickTest() {
     if(statusLbl) statusLbl.innerHTML = '<span style="color:orange">Dosya okunuyor...</span>';
 
     try {
-        // Not: Bu dosyanın kök dizinde bulunduğunu varsayar.
-        const response = await fetch('firmware.hex'); 
+        const response = await fetch('firmware.hex');
         if (!response.ok) throw new Error("firmware.hex dosyası bulunamadı!");
         
         const hexText = await response.text();
 
         if(btn) btn.innerHTML = '<i class="fas fa-microchip"></i> Yükleniyor...';
         
+        // Yükleyiciye gönder
         await runUploader(hexText);
 
     } catch (err) {
@@ -199,10 +183,11 @@ async function runQuickTest() {
 
 async function connectSerial() {
     if (!navigator.serial) {
-        alert("Tarayıcınız Seri Port desteklemiyor. Lütfen Chrome, Edge veya Opera kullanın.");
+        alert("Tarayıcınız Seri Port desteklemiyor.");
         return;
     }
 
+    // Eğer zaten bağlıysa tekrar bağlanmaya çalışma
     if (serialPort && serialPort.readable) {
         alert("Zaten bağlı!");
         return;
@@ -210,29 +195,20 @@ async function connectSerial() {
 
     try {
         serialPort = await navigator.serial.requestPort();
-        // AVRgirl için genellikle 115200 Baudrate yeterlidir.
-        await serialPort.open({ baudRate: 115200 }); 
+        await serialPort.open({ baudRate: 115200 });
 
         const textEncoder = new TextEncoderStream();
-        // Seri porttan veri alma (Okuyucu oluşturulmalı)
-        // const reader = serialPort.readable.getReader();
-        
-        // Seri porta veri gönderme
-        textEncoder.readable.pipeTo(serialPort.writable);
+        const writableStreamClosed = textEncoder.readable.pipeTo(serialPort.writable);
         serialWriter = textEncoder.writable.getWriter();
 
-        // Arayüz Güncelleme
+        // Arayüz
         const badge = document.getElementById('statusBadge');
         if(badge) {
             badge.innerHTML = '<i class="fas fa-circle" style="color:#00e676; font-size:0.6rem;"></i> Bağlandı';
             badge.style.color = "#00e676";
         }
-        const consoleEl = document.getElementById('serialConsole');
-        if (consoleEl) {
-             consoleEl.innerHTML += "<br>> <span style='color:#0f0'>Bağlantı Başarılı!</span>";
-        }
+        document.getElementById('serialConsole').innerHTML += "<br>> <span style='color:#0f0'>Bağlantı Başarılı!</span>";
 
-        // Butonların görünürlüğünü ayarla
         document.getElementById('btnConnect').style.display = 'none';
         document.getElementById('btnDisconnect').style.display = 'inline-flex';
 
@@ -242,11 +218,11 @@ async function connectSerial() {
     }
 }
 
+// Sessiz mod eklendi: Yükleme öncesi otomatik kapatmada uyarı vermesin diye
 async function disconnectSerial(silent = false) {
     if(blinkInterval) {
         clearInterval(blinkInterval);
         blinkInterval = null;
-        document.getElementById('serialConsole').innerHTML += "<br>> <span style='color:orange'>BLINK Durduruldu.</span>";
     }
 
     try {
@@ -271,7 +247,6 @@ async function disconnectSerial(silent = false) {
         
         document.getElementById('serialConsole').innerHTML += "<br>> <span style='color:orange'>Bağlantı Kesildi.</span>";
     
-        // Butonların görünürlüğünü ayarla
         document.getElementById('btnConnect').style.display = 'inline-flex';
         document.getElementById('btnDisconnect').style.display = 'none';
     }
@@ -284,78 +259,54 @@ async function runBlock(command) {
     }
 
     try {
-        // BLINK döngüsünü durdur
         if(blinkInterval) {
             clearInterval(blinkInterval);
             blinkInterval = null;
-            document.getElementById('serialConsole').innerHTML += "<br>> <span style='color:orange'>BLINK Durduruldu.</span>";
         }
-
-        let writeCommand = "";
-        let consoleMessage = "";
 
         if (command === 'ON') {
-            writeCommand = "1";
-            consoleMessage = "LED YAKILDI (1)";
+            await serialWriter.write("1");
+            document.getElementById('serialConsole').innerHTML += `<br>> LED YAKILDI (1)`;
         }
         else if (command === 'OFF') {
-            writeCommand = "0";
-            consoleMessage = "LED SÖNDÜRÜLDÜ (0)";
+            await serialWriter.write("0");
+            document.getElementById('serialConsole').innerHTML += `<br>> LED SÖNDÜRÜLDÜ (0)`;
         }
         else if (command === 'BLINK') {
-            consoleMessage = "BLINK BAŞLATILDI...";
-            document.getElementById('serialConsole').innerHTML += `<br>> <span>${consoleMessage}</span>`;
+            document.getElementById('serialConsole').innerHTML += `<br>> BLINK BAŞLATILDI...`;
             let toggle = false;
             blinkInterval = setInterval(async () => {
                 if(!serialWriter) { clearInterval(blinkInterval); return; }
                 toggle = !toggle;
                 try {
-                    // Blink komutu için sürekli veri gönderimi
                     await serialWriter.write(toggle ? "1" : "0");
-                } catch(e) { 
-                    clearInterval(blinkInterval); 
-                    blinkInterval = null;
-                }
+                } catch(e) { clearInterval(blinkInterval); }
             }, 500); 
-            return; // Blink döngüsü başladığı için buradan çık
         }
-        
-        await serialWriter.write(writeCommand);
-        document.getElementById('serialConsole').innerHTML += `<br>> <span>${consoleMessage}</span>`;
     } catch (err) {
         alert("Gönderme Hatası: " + err);
     }
 }
 
 // ==========================================
-// 7. OYUNLAR (Düzeltildi)
+// 7. OYUNLAR
 // ==========================================
-// Canvas ve Context'i tanımla
 let canvas = document.getElementById('gameCanvas');
 let ctx = canvas ? canvas.getContext('2d') : null;
 let gameInterval, currentGame, score = 0;
 
 function stopCurrentGame() {
-    // Canvas ve Context'i tekrar kontrol et
-    if(!ctx && canvas) ctx = canvas.getContext('2d');
     if(!ctx) return;
     clearInterval(gameInterval);
-    // Canvas'ı temizle
-    ctx.clearRect(0, 0, 400, 400); 
+    ctx.clearRect(0, 0, 400, 400);
     currentGame = null;
 }
 
 function startGame(t, b) {
-    if(!ctx) { 
-        canvas = document.getElementById('gameCanvas');
-        ctx = canvas ? canvas.getContext('2d') : null;
-        if (!ctx) return; 
-    }
+    if(!ctx) return;
     stopCurrentGame();
-    // Oyun kartının aktif görünmesini sağlar
     document.querySelectorAll('.game-card').forEach(c => c.classList.remove('active-game'));
-    if(b) b.classList.add('active-game'); 
-    
+    if(b) b.classList.add('active-game');
     score = 0;
     const sb = document.getElementById('scoreBoard');
     if(sb) sb.innerText = "SKOR: 0";
@@ -432,7 +383,7 @@ function initMaze() {
     }
     gameInterval = setInterval(() => {
         if (Math.random() > 0.5) {
-            let m = [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }].filter(d => map[g.y + d.y] && map[g.y + d.y][g.x + d.x] != 1);
+            let m = [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }].filter(d => map[g.y + d.y][g.x + d.x] != 1);
             if (m.length) { let nm = m[Math.floor(Math.random() * m.length)]; g.x += nm.x; g.y += nm.y; }
         }
         if (p.x == g.x && p.y == g.y) { score = 0; p = { x: 1, y: 1 }; g = { x: 8, y: 5 }; alert("Yakaladın!"); } draw();
@@ -441,7 +392,7 @@ function initMaze() {
         if (currentGame !== 'maze') return;
         let nx = p.x, ny = p.y;
         if (e.keyCode == 37) nx--; if (e.keyCode == 39) nx++; if (e.keyCode == 38) ny--; if (e.keyCode == 40) ny++;
-        if (map[ny] && map[ny][nx] != 1) { p.x = nx; p.y = ny; if (map[ny][nx] == 0) { score += 10; map[ny][nx] = 2; document.getElementById('scoreBoard').innerText = "SKOR: " + score; } } draw();
+        if (map[ny][nx] != 1) { p.x = nx; p.y = ny; if (map[ny][nx] == 0) { score += 10; map[ny][nx] = 2; document.getElementById('scoreBoard').innerText = "SKOR: " + score; } } draw();
         if ([37, 38, 39, 40].includes(e.keyCode)) e.preventDefault();
     };
     draw();
