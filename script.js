@@ -59,6 +59,10 @@ let blinkInterval;
 async function connectSerial() {
     if (!("serial" in navigator)) {
         logConsole("⚠️ Tarayıcınız desteklemiyor (Chrome kullanın).");
+        // Rozeti Güncelle
+const badge = document.getElementById('statusBadge');
+badge.innerHTML = '<i class="fas fa-check-circle" style="font-size:0.6rem;"></i> Bağlandı';
+badge.classList.add('connected');
         return;
     }
     try {
@@ -85,6 +89,10 @@ async function disconnectSerial() {
         if (writer) { await writer.releaseLock(); writer = null; }
         if (port) { await port.close(); port = null; }
         logConsole("🔌 Bağlantı Kesildi.");
+        // Rozeti Eski Haline Getir
+const badge = document.getElementById('statusBadge');
+badge.innerHTML = '<i class="fas fa-circle" style="font-size:0.6rem;"></i> Bağlantı Yok';
+badge.classList.remove('connected');
     } catch (err) { logConsole("⚠️ Hata oluştu, sayfayı yenileyin."); }
     
     document.getElementById('btnConnect').style.display = 'inline-block';
