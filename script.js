@@ -99,13 +99,19 @@ function showSection(id, btn) {
 
 // YENİ: Blockly bölümünü gösteren ve başlatan fonksiyon
 function showBlocksSection(btn) {
-    // Önce sekme değiştirilir
+    // 1. Sekme değiştirilir
     showSection('blocks', btn);
     
-    // Ardından, sekme görünür hale geldikten sonra Blockly başlatılır
-    if (!blocklyWorkspace) {
-        initBlockly();
-    }
+    // 2. Blockly'nin init fonksiyonu, tarayıcıya çizim yapması için zaman vererek çağrılır.
+    // Bu, "display: none" -> "display: block" geçişinden sonra doğru boyutlanmasını sağlar.
+    setTimeout(() => {
+        if (!blocklyWorkspace) {
+            initBlockly();
+        } else {
+            // Blockly yeniden boyutlandırma
+            Blockly.svgResize(blocklyWorkspace);
+        }
+    }, 100); // 100ms gecikme
 }
 
 // ==========================================
@@ -141,7 +147,6 @@ async function compileCode() {
     const statusLbl = document.getElementById('statusLabelNew');
     const btnUpload = document.getElementById('btnUploadNew');
     
-    // Basit bir analiz (Sadece demoda kullanılan seri port kontrol kodunu kabul et)
     const isBasicSerialControl = editorVal.includes('Serial.begin(115200)') && editorVal.includes('Serial.read()'); 
 
     statusLbl.innerText = "Durum: Kod analizi yapılıyor... (Hızlı Derleyici Emülasyonu)";
@@ -157,7 +162,6 @@ async function compileCode() {
         btnUpload.style.cursor = "not-allowed";
         return;
     }
-
 
     compiledHexCode = UNIVERSAL_HEX; 
     statusLbl.innerText = "Durum: BAŞARILI! Kod yüklenebilir.";
@@ -352,8 +356,8 @@ async function runBlock(command) {
 // 7. BLOCKLY ENTEGRASYONU VE KOD ÜRETİMİ (C++)
 // ==========================================
 function initBlockly() {
-    // Çalışma alanı zaten başlatıldıysa veya Blockly kütüphanesi yüklenmediyse dur
     if (blocklyWorkspace || typeof Blockly === 'undefined') {
+        console.warn("Blockly zaten yüklü veya kütüphane eksik.");
         return;
     }
     
@@ -468,13 +472,13 @@ function initBlockly() {
         
         // Setup ve Loop yapısını ekleyerek tam Arduino kodu oluşturma (Çok Basitleştirilmiş)
         if(generatedCode) {
-            generatedCode = "void setup() {\n  // Başlangıç ayarları\n" 
-                + generatedCode.match(/pinMode\([^;]*;\n/g)?.join('') || ""
-                + "}\n\nvoid loop() {\n  // Sürekli çalışan kod\n" 
-                + generatedCode.replace(/pinMode\([^;]*;\n/g, '') 
-                + "}";
-        }
+            // Sadece PinMode'ları setup'a al
+            const setupCode = generatedCode.match(/pinMode\([^;]*;\n/g)?.join('\n') || "";
+            // Geri kalanını loop'a al
+            const loopCode = generatedCode.replace(/pinMode\([^;]*;\n/g, '');
 
+            generatedCode = `void setup() {\n  // Başlangıç ayarları\n${setupCode}\n}\n\nvoid loop() {\n  // Sürekli çalışan kod\n${loopCode}}`;
+        }
 
         document.getElementById('generatedCode').innerText = generatedCode || "// Blokları buraya sürükle...";
     }
@@ -487,7 +491,7 @@ function initBlockly() {
             <field name="PIN">13</field>
             <field name="MODE">OUTPUT</field>
             <next>
-                <block type="controls_repeat_ext" id="loop">
+                <block type="controls_repeat_ext" id="loop" inline="false">
                     <value name="TIMES">
                         <shadow type="math_number">
                             <field name="NUM">99999</field>
@@ -525,11 +529,9 @@ function initBlockly() {
     updateCode({});
 }
 
-// ==========================================
+// =adan=======================================
 // 8. OYUNLAR (SNAKE, TETRIS, MAZE)
 // ==========================================
-// ... (Oyun kodları değişmediği için kısaltılmıştır)
-
 let canvas = document.getElementById('gameCanvas');
 let ctx = canvas ? canvas.getContext('2d') : null;
 let gameInterval, currentGame, score = 0;
