@@ -1,49 +1,98 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const { exec } = require('child_process');
-const fs = require('fs');
-const path = require('path');
 const cors = require('cors');
+const { exec } = require('child_process');
+const fs = require('fs/promises');
+const path = require('path');
 
 const app = express();
-app.use(cors()); 
+// Render ortam portunu kullan
+const port = process.env.PORT || 3000;
+
+// ==========================================
+// Middleware (CORS dahil)
+// ==========================================
+app.use(cors()); // CORS aktif: Farklı kaynaklardan gelen isteklere izin verir (GitHub Pages'ten Render'a)
 app.use(bodyParser.json());
 
-const SKETCH_DIR = path.join(__dirname, 'sketch_temp');
-const SKETCH_FILE = path.join(SKETCH_DIR, 'sketch_temp.ino');
+// ==========================================
+// Konfigürasyon
+// ==========================================
+const sketchDir = path.join(__dirname, 'sketch');
+// Arduino Uno (arduino:avr:uno) kartı için beklenen HEX dosya yolu
+const hexPath = path.join(sketchDir, 'build/arduino.avr.uno/sketch.ino.hex');
 
-if (!fs.existsSync(SKETCH_DIR)){
-    fs.mkdirSync(SKETCH_DIR);
-}
 
-app.post('/compile', (req, res) => {
+// ==========================================
+// Derleme Endpoint'i
+// ==========================================
+app.post('/compile', async (req, res) => {
     const code = req.body.code;
-    const board = "arduino:avr:uno"; 
 
-    console.log("Kod alındı...");
-    fs.writeFileSync(SKETCH_FILE, code);
+    if (!code) {
+        return res.status(400).send({ error: 'Code not provided.' });
+    }
 
-    // Arduino-CLI komutu
-    const command = `arduino-cli compile --fqbn ${board} "${SKETCH_DIR}" --output-dir "${SKETCH_DIR}"`;
+    const sketchFile = path.join(sketchDir, 'sketch.ino');
+    let derlemeHatasi = null;
 
-    exec(command, (error, stdout, stderr) => {
-        if (error) {
-            console.error(`Hata: ${stderr}`);
-            return res.status(500).json({ error: stderr || error.message });
+    try {
+        // 1. Dizinleri temizle ve oluştur
+        await fs.rm(sketchDir, { recursive: true, force: true });
+        await fs.mkdir(sketchDir, { recursive: true });
+        
+        // 2. Kodu sketch.ino dosyasına yaz
+        await fs.writeFile(sketchFile, code);
+
+        // 3. Arduino CLI ile derleme komutu
+        const compileCommand = `arduino-cli compile -b arduino:avr:uno ${sketchDir} --build-path ${path.join(sketchDir, 'build')}`;
+        
+        // Komutun tamamlanmasını bekler
+        await new Promise((resolve, reject) => {
+            exec(compileCommand, (error, stdout, stderr) => {
+                if (error) {
+                    derlemeHatasi = stderr || 'Bilinmeyen derleme hatası.';
+                    console.error(`Derleme Hatası: ${derlemeHatasi}`);
+                    reject(new Error("Derleme başarısız.")); 
+                } else {
+                    console.log("Derleme başarılı.");
+                    resolve();
+                }
+            });
+        });
+
+        // 4. Derlenen .hex dosyasını oku ve gönder
+        const hexContent = await fs.readFile(hexPath, 'utf8');
+        return res.send({ hex: hexContent });
+
+    } catch (hata) {
+        
+        if (hata.message === "Derleme başarısız.") {
+            // Arduino CLI'dan gelen hatayı ön yüze gönder
+            return res.status(500).send({ 
+                error: 'Compilation failed', 
+                details: derlemeHatasi || 'Derleme çıktısı alınamadı.'
+            });
         }
-
-        const hexPath = path.join(SKETCH_DIR, 'sketch_temp.ino.hex');
-        if (fs.existsSync(hexPath)) {
-            const hexContent = fs.readFileSync(hexPath, 'utf8');
-            res.json({ hex: hexContent });
-        } else {
-            res.status(500).json({ error: "Hex oluşturulamadı." });
-        }
-    });
+        
+        // Genel dosya sistemi/işlem hatasını gönder
+        console.error(`Genel Hata: ${hata.message}`);
+        return res.status(500).send({ 
+            error: 'Sunucu İç Hatası', 
+            details: hata.message 
+        });
+    }
 });
 
-// Render.com'un verdiği portu kullan
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+
+// ==========================================
+// Sunucuyu Başlat
+// ==========================================
+app.listen(port, () => {
+    console.log(`Arduino CLI Compilation Server listening on port ${port}`);
+});
+
+// GET isteği (Servis sağlık kontrolü için)
+app.get('/', (req, res) => {
+    res.send('Arduino CLI Derleme Sunucusu aktif. Derleme için POST /compile adresini kullanın.');
 });
