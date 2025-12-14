@@ -121,6 +121,47 @@ void loop() {
                     </button>
                     
                     <button id="btnUploadNew" class="serial-btn off" style="background:#555; color:white; cursor: not-allowed;" disabled onclick="runUploader()">
+                        async function runQuickTest() {
+        const btn = document.getElementById('btnQuickTest');
+        const statusLbl = document.getElementById('statusBadge');
+
+        // 1. Butonun durumunu güncelle (Yükleniyor efekti)
+        if(btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> İndiriliyor...';
+        }
+        if(statusLbl) statusLbl.innerHTML = '<span style="color:orange">Dosya okunuyor...</span>';
+
+        try {
+            // 2. firmware.hex dosyasını sunucudan/klasörden metin olarak çek
+            const response = await fetch('firmware.hex');
+            
+            if (!response.ok) {
+                throw new Error("firmware.hex dosyası bulunamadı! (HTTP " + response.status + ")");
+            }
+            
+            // Hex dosyasının içeriğini metin (string) olarak al
+            const hexText = await response.text();
+
+            // 3. Mevcut yükleyici fonksiyonuna bu metni gönder
+            // Not: runUploader zaten hex string'i alıp Blob -> ArrayBuffer çevrimini yapıyor.
+            if(btn) btn.innerHTML = '<i class="fas fa-microchip"></i> Yükleniyor...';
+            
+            // runUploader'ı çağır
+            await runUploader(hexText);
+
+        } catch (err) {
+            console.error(err);
+            alert("Hata oluştu: " + err.message);
+            if(statusLbl) statusLbl.innerHTML = '<span style="color:red">Hata!</span>';
+        } finally {
+            // 4. İşlem bitince (başarılı veya hatalı) butonu eski haline getir
+            if(btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-microchip"></i> Test Firmware Yükle';
+            }
+        }
+    }
                         <i class="fas fa-upload"></i> 2. Kodu Yükle
                     </button>
                 </div>
@@ -407,6 +448,7 @@ void loop() {
 </script>
 </body>
 </html>
+
 
 
 
