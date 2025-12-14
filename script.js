@@ -52,7 +52,7 @@ async function compileCode() {
     statusLbl.style.color = "#40c4ff";
 
     try {
-        const response = await fetch('https://arduino-backend-ajkr.onrender.com/compile', {
+        const response = await fetch('https://arduino-backend-et1z.onrender.com/compile', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ code: editorVal })
