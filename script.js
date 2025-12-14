@@ -1,10 +1,6 @@
-// ============================================================
-// 1. GLOBAL DEĞİŞKENLER VE NAVİGASYON
-// ============================================================
-let serialPort = null;
-let serialWriter = null;
-let keepReading = false;
-
+// ==========================================
+// 1. NAVİGASYON VE SAYFA GEÇİŞLERİ
+// ==========================================
 function showSection(id, btn) {
     document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
     document.getElementById(id).classList.add('active');
@@ -13,25 +9,12 @@ function showSection(id, btn) {
     if (id !== 'games') stopCurrentGame();
 }
 
-// Konsola Yazdırma Yardımcısı
-function logConsole(msg, isError = false) {
-    const c = document.getElementById('serialConsole');
-    if (c) {
-        const color = isError ? '#ff5252' : '#00e676';
-        c.innerHTML += `<div><span style="color:${color}">></span> ${msg}</div>`;
-        c.scrollTop = c.scrollHeight;
-    } else {
-        console.log(msg);
-    }
-}
-
-// ============================================================
-// 2. GITHUB VERİLERİNİ ÇEKME
-// ============================================================
+// ==========================================
+// 2. GITHUB REPO ÇEKME
+// ==========================================
 async function fetchGithubRepos() {
     const username = 'SalihAyvaci21';
     const container = document.getElementById('repos-container');
-    if(!container) return;
     const gizlenecekler = ["SalihAyvaci21", "portfolyo"];
 
     try {
@@ -48,156 +31,81 @@ async function fetchGithubRepos() {
 }
 window.onload = fetchGithubRepos;
 
-// ============================================================
-// 3. FİRMWARE YÜKLEME (HEX DOSYASINI OKUYUP YÜKLER)
-// ============================================================
-async function flashFirmware() {
-    const btn = document.getElementById('btnFlash');
-    
-    // Bağlantı açıksa uyar
-    if (serialPort) {
-        alert("Yükleme yapmadan önce 'Bağlantıyı Kes' butonuna basmalısınız.");
+// ==========================================
+// 3. FIRMWARE YÜKLEME (SADECE AVRGIRL)
+// ==========================================
+function logConsole(msg) {
+    const c = document.getElementById('serialConsole');
+    // Eğer konsol HTML'de yoksa hata vermesin diye kontrol ekledik
+    if(c) c.innerHTML = `<div>> ${msg}</div>` + c.innerHTML;
+    else console.log(msg);
+}
+
+async function uploadHex() {
+    const btn = document.getElementById('btnUpload');
+
+    // 1. Kütüphane Kontrolü
+    if (typeof window.AvrgirlArduino === 'undefined') {
+        logConsole("❌ Hata: 'avrgirl-arduino.global.js' kütüphanesi yüklenmemiş!");
+        alert("Kütüphane eksik. Lütfen index.html dosyasını kontrol et.");
         return;
     }
 
-    if (btn) {
+    // 2. Kullanıcı Onayı
+    if (!confirm("Arduino Uno'ya kod yüklenecek. Onaylıyor musun?")) return;
+
+    // 3. Butonu Kilitle
+    if(btn) {
         btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> İndiriliyor...';
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Yükleniyor...';
     }
-    logConsole("Dosya: 'firmware.hex' sunucudan isteniyor...");
 
     try {
-        // 1. firmware.hex dosyasını oku
+        logConsole("⏳ HEX dosyası indiriliyor...");
+        // Hex dosyasını indir
         const response = await fetch('firmware.hex');
         if (!response.ok) throw new Error("firmware.hex dosyası bulunamadı!");
+        const hexData = await response.arrayBuffer();
+
+        logConsole("⏳ Arduino aranıyor ve yükleme başlıyor...");
         
-        // Avrgirl arrayBuffer ister
-        const fileBuffer = await response.arrayBuffer();
-
-        // 2. Yüklemeyi Başlat
-        logConsole("Port seçin ve yüklemeyi onaylayın...");
-        if(btn) btn.innerHTML = '<i class="fas fa-microchip"></i> Yükleniyor...';
-
+        // AVRGIRL BAŞLATILIYOR (Port seçimini kütüphane kendisi açacak)
         const avrgirl = new AvrgirlArduino({
             board: 'uno',
             debug: true
         });
 
-        avrgirl.flash(fileBuffer, (error) => {
-            if (error) {
-                logConsole("Hata: " + error.message, true);
-                alert("Yükleme Başarısız: " + error.message);
-            } else {
-                logConsole("BAŞARILI: Firmware yüklendi!");
-                alert("Kod başarıyla yüklendi. Şimdi 'Bağlan' diyerek LED'i kontrol edebilirsiniz.");
-            }
-            
-            // Butonu sıfırla
+        avrgirl.flash(hexData, (error) => {
+            // İşlem bittiğinde butonu eski haline getir
             if(btn) {
                 btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-microchip"></i> Firmware Yükle (Hex)';
+                btn.innerHTML = '<i class="fas fa-microchip"></i> Firmware Yükle';
+            }
+
+            if (error) {
+                console.error(error);
+                logConsole("❌ Yükleme Başarısız: " + error);
+                alert("Yükleme sırasında hata oluştu. Konsolu kontrol et.");
+            } else {
+                logConsole("✅ BAŞARILI! Firmware yüklendi.");
+                alert("Yükleme Başarıyla Tamamlandı!");
             }
         });
 
-    } catch (err) {
-        logConsole("Hata: " + err.message, true);
-        alert("İşlem Hatası: " + err.message);
+    } catch (e) {
+        logConsole("❌ Hata: " + e.message);
         if(btn) {
             btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-microchip"></i> Firmware Yükle (Hex)';
+            btn.innerHTML = '<i class="fas fa-microchip"></i> Firmware Yükle';
         }
     }
 }
 
-// ============================================================
-// 4. SERİ PORT BAĞLANTISI VE KONTROL
-// ============================================================
-
-// BAĞLAN
-async function connectSerial() {
-    if (!navigator.serial) {
-        alert("Tarayıcınız Web Serial API desteklemiyor. (Chrome/Edge kullanın)");
-        return;
-    }
-
-    try {
-        serialPort = await navigator.serial.requestPort();
-        await serialPort.open({ baudRate: 115200 });
-
-        // Yazıcıyı ayarla
-        const textEncoder = new TextEncoderStream();
-        const writableStreamClosed = textEncoder.readable.pipeTo(serialPort.writable);
-        serialWriter = textEncoder.writable.getWriter();
-
-        // UI Güncelle
-        document.getElementById('btnConnect').style.display = 'none';
-        document.getElementById('btnDisconnect').style.display = 'inline-flex';
-        
-        const badge = document.getElementById('statusBadge');
-        badge.innerHTML = '<i class="fas fa-circle" style="font-size:0.6rem;"></i> Bağlandı';
-        badge.classList.add('connected');
-        badge.style.color = "#00e676";
-
-        logConsole("Seri port bağlantısı kuruldu.");
-
-    } catch (err) {
-        console.error(err);
-        logConsole("Bağlantı hatası: " + err.message, true);
-        alert("Bağlanılamadı: " + err.message);
-    }
-}
-
-// BAĞLANTIYI KES
-async function disconnectSerial() {
-    if (!serialPort) return;
-
-    try {
-        if (serialWriter) {
-            await serialWriter.releaseLock();
-            serialWriter = null;
-        }
-        await serialPort.close();
-        serialPort = null;
-
-        // UI Güncelle
-        document.getElementById('btnConnect').style.display = 'inline-flex';
-        document.getElementById('btnDisconnect').style.display = 'none';
-
-        const badge = document.getElementById('statusBadge');
-        badge.innerHTML = '<i class="fas fa-circle" style="font-size:0.6rem;"></i> Bağlantı Yok';
-        badge.classList.remove('connected');
-        badge.style.color = "#aaa";
-
-        logConsole("Bağlantı kesildi.");
-
-    } catch (err) {
-        console.error(err);
-        alert("Keserken hata oluştu: " + err.message);
-    }
-}
-
-// KOMUT GÖNDER (LED Kontrolü için)
-async function sendSerialCommand(charToSend) {
-    if (!serialWriter) {
-        alert("Lütfen önce 'Bağlan' butonuna basın.");
-        return;
-    }
-
-    try {
-        await serialWriter.write(charToSend);
-        let action = (charToSend === '1') ? "LED YAKILDI" : "LED SÖNDÜRÜLDÜ";
-        logConsole(`Gönderildi: ${charToSend} -> ${action}`);
-    } catch (err) {
-        logConsole("Gönderme Hatası: " + err.message, true);
-        // Bağlantı kopmuş olabilir
-        disconnectSerial(); 
-    }
-}
-
-// ============================================================
-// 5. OYUNLAR (SNAKE, TETRIS, MAZE)
-// ============================================================
+// ==========================================
+// 4. OYUNLAR (SNAKE, TETRIS, MAZE)
+// ==========================================
 let canvas = document.getElementById('gameCanvas');
+// Eğer oyun sayfası yoksa hata vermemesi için kontrol
 let ctx = canvas ? canvas.getContext('2d') : null;
 let gameInterval, currentGame, score = 0;
 
@@ -206,7 +114,6 @@ function stopCurrentGame() {
     clearInterval(gameInterval);
     ctx.clearRect(0, 0, 400, 400);
     currentGame = null;
-    document.getElementById('gameControls').innerText = "Oynamak için bir oyun seçin";
 }
 
 function startGame(t, b) {
@@ -218,12 +125,13 @@ function startGame(t, b) {
     const sb = document.getElementById('scoreBoard');
     if(sb) sb.innerText = "SKOR: 0";
     
-    if (t === 'snake') { initSnake(); document.getElementById('gameControls').innerText = "Yön Tuşları ile Yılanı Yönet"; }
-    if (t === 'tetris') { initTetris(); document.getElementById('gameControls').innerText = "Yön Tuşları ile Blokları Yönet"; }
-    if (t === 'maze') { initMaze(); document.getElementById('gameControls').innerText = "Mavi Bloklardan Kaç, Sarı Hedefe Git"; }
+    if (t === 'snake') initSnake();
+    if (t === 'tetris') initTetris();
+    if (t === 'maze') initMaze();
 }
 
-// 1. SNAKE OYUNU
+// --- OYUN FONKSİYONLARI ---
+// 1. SNAKE
 function initSnake() {
     currentGame = 'snake';
     let snake = [{ x: 10, y: 10 }], apple = { x: 15, y: 15 }, xv = 0, yv = 0;
@@ -251,7 +159,7 @@ function initSnake() {
     }, 100);
 }
 
-// 2. TETRIS OYUNU
+// 2. TETRIS
 function initTetris() {
     currentGame = 'tetris';
     let board = Array(20).fill().map(() => Array(10).fill(0)), piece = { m: [[[1]]], x: 3, y: 0, c: '#fff' };
@@ -281,7 +189,7 @@ function initTetris() {
     };
 }
 
-// 3. MAZE OYUNU
+// 3. MAZE
 function initMaze() {
     currentGame = 'maze';
     let map = [[1, 1, 1, 1, 1, 1, 1, 1, 1, 1], [1, 0, 0, 0, 1, 0, 0, 0, 0, 1], [1, 0, 1, 0, 1, 0, 1, 1, 0, 1], [1, 0, 0, 0, 0, 0, 0, 0, 0, 1], [1, 0, 1, 1, 1, 1, 1, 1, 0, 1], [1, 0, 0, 0, 0, 0, 0, 0, 0, 1], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]];
