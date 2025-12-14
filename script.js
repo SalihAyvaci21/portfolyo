@@ -53,20 +53,31 @@ async function compileCode() {
     const statusLbl = document.getElementById('statusLabelNew');
     const btnUpload = document.getElementById('btnUploadNew');
 
-    // Bu URL'yi kendi Render sunucunuzun adresiyle değiştirmeyi unutmayın.
-    const RENDER_SERVER_URL = 'https://arduino-backend-ajkr.onrender.com';
+    // !!! BURAYI SİZİN GERÇEK ARDUINO BACKEND SUNUCU ADRESİNİZ İLE DEĞİŞTİRİN !!!
+    // Eğer aynı Render projesi içinde ayrı bir Web Service olarak kurduysanız, o Web Service'in URL'si olmalı.
+    const ARDUINO_BACKEND_URL = 'https://arduino-backend-ajkr.onrender.com'; // Örn.
+    // LÜTFEN Render panelinizden Arduino CLI server'ınızın tam URL'sini buraya yazınız.
 
     statusLbl.innerText = "Durum: Sunucuda derleniyor... (Bekleyin)";
     statusLbl.style.color = "#40c4ff";
 
     try {
-        const response = await fetch(`${RENDER_SERVER_URL}/compile`, {
+        const response = await fetch(`${ARDUINO_BACKEND_URL}/compile`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ code: editorVal })
         });
 
-        if (!response.ok) throw new Error("Sunucu Hatası");
+        if (!response.ok) {
+            // Hata detayını yakalamak için
+            let errorDetail = "Bilinmeyen sunucu hatası.";
+            try {
+                 errorDetail = await response.text();
+            } catch (e) { /* Yoksay */ }
+            
+            throw new Error(`Sunucu Hatası (${response.status}): ${errorDetail.substring(0, 50)}...`);
+        }
+        
         const data = await response.json();
 
         if (data.hex) {
@@ -78,15 +89,14 @@ async function compileCode() {
             btnUpload.style.cursor = "pointer";
             btnUpload.classList.remove('off');
         } else {
-            throw new Error("Hex kodu boş döndü.");
+            throw new Error("Hex kodu boş döndü. Derleme başarısız.");
         }
     } catch (err) {
-        console.error(err);
+        console.error("Derleme hatası:", err);
         statusLbl.innerText = "Hata: " + err.message;
         statusLbl.style.color = "#ff5252";
     }
 }
-
 // ==========================================
 // 4. IOT: YÜKLEME (AVRgirl)
 // ==========================================
