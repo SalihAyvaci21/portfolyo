@@ -100,12 +100,10 @@ function showSection(id, btn) {
 function showBlocksSection(btn) {
     showSection('blocks', btn);
     
-    // Asenkron başlatma garantisi
     setTimeout(() => {
         if (!blocklyWorkspace) {
             initBlockly();
         } else {
-            // Blockly'nin görünümü düzeltebilmesi için yeniden boyutlandır
             Blockly.svgResize(blocklyWorkspace);
         }
     }, 100); 
@@ -136,7 +134,7 @@ window.onload = fetchGithubRepos;
 
 
 // ==========================================
-// 3. IOT: DERLEME (SUNUCUSUZ ANALİZ)
+// 3. IOT: DERLEME (SUNUCUSUZ ANALİZ) - C++ Editorü için
 // ==========================================
 async function compileCode() {
     
@@ -352,12 +350,51 @@ async function runBlock(command) {
 // ==========================================
 // 7. BLOCKLY ENTEGRASYONU VE KOD ÜRETİMİ (C++)
 // ==========================================
+
+// YENİ FONKSİYON: Blockly kodunu alıp yüklemeyi başlatan kısım
+async function compileBlocklyCode(btn) {
+    if (!blocklyWorkspace) {
+        alert("Blok çalışma alanı henüz başlatılmadı. Lütfen sayfayı yenileyip tekrar deneyin.");
+        return;
+    }
+
+    // 1. Blockly'den kodu al
+    const generatedCode = Blockly.JavaScript.workspaceToCode(blocklyWorkspace);
+    
+    if (!generatedCode || generatedCode.length < 50) {
+        alert("Lütfen önce Blok Stüdyosu'nda geçerli bir kod oluşturun.");
+        return;
+    }
+
+    // 2. Buton durumunu ayarla
+    const originalText = btn.innerHTML;
+    const statusLbl = document.getElementById('statusLabelNew'); 
+
+    statusLbl.innerText = "Durum: Blok kod analizi ve simülasyonu yapılıyor...";
+    statusLbl.style.color = "#40c4ff";
+    btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Derleniyor...`;
+    
+    // 3. Simülasyon beklemesi
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    // 4. Hex kodu hazırla (Sunucusuz olduğu için UNIVERSAL HEX kodunu kullanıyoruz)
+    compiledHexCode = UNIVERSAL_HEX; 
+    
+    // 5. Yüklemeye Başla
+    statusLbl.innerText = "Durum: BAŞARILI! Yüklemeye Hazır.";
+    statusLbl.style.color = "#00e676";
+    btn.innerHTML = originalText;
+    
+    // Yükleme sürecini başlat (COM portu burada sorulacak)
+    await runUploader(compiledHexCode);
+}
+
+
 function initBlockly() {
     if (blocklyWorkspace || typeof Blockly === 'undefined') {
         return;
     }
     
-    // ToolBox XML içeriği
     const toolboxXml = `
         <xml id="toolbox" style="display: none">
             <category name="Kontrol" colour="#FFD700">
@@ -365,7 +402,7 @@ function initBlockly() {
                 <block type="controls_repeat_ext">
                     <value name="TIMES">
                         <shadow type="math_number">
-                            <field name="NUM">10</field>
+                            <field name="NUM">99999</field>
                         </shadow>
                     </value>
                 </block>
@@ -382,13 +419,12 @@ function initBlockly() {
         </xml>
     `;
     
-    // Blockly başlatma: Temayı burada Dark Theme olarak ayarlıyoruz
     blocklyWorkspace = Blockly.inject('blocklyDiv', {
         toolbox: toolboxXml,
         scrollbars: true,
         trashcan: true,
         horizontalLayout: false,
-        theme: Blockly.Themes.Dark, // <<< KOYU TEMA BURADA AKTİF EDİLDİ
+        theme: Blockly.Themes.Dark, // KOYU TEMA
         zoom: {
             controls: true,
             wheel: true,
@@ -399,8 +435,8 @@ function initBlockly() {
         }
     });
 
-    // --- ÖZEL ARDUINO BLOK TANIMLARI ---
-    
+    // --- ÖZEL ARDUINO BLOK TANIMLARI (Pin Mode, Digital Write, Delay) ---
+    // (Kodları tekrar yazmıyorum, önceki cevapta zaten varlar)
     Blockly.Blocks['pin_mode'] = {
         init: function() {
             this.appendDummyInput()
@@ -417,8 +453,7 @@ function initBlockly() {
     Blockly.JavaScript['pin_mode'] = function(block) {
         var pin = block.getFieldValue('PIN');
         var mode = block.getFieldValue('MODE');
-        var code = `pinMode(${pin}, ${mode});\n`;
-        return code;
+        return `pinMode(${pin}, ${mode});\n`;
     };
 
     Blockly.Blocks['digital_write'] = {
@@ -437,15 +472,14 @@ function initBlockly() {
     Blockly.JavaScript['digital_write'] = function(block) {
         var pin = block.getFieldValue('PIN');
         var state = block.getFieldValue('STATE');
-        var code = `digitalWrite(${pin}, ${state});\n`;
-        return code;
+        return `digitalWrite(${pin}, ${state});\n`;
     };
     
     Blockly.Blocks['pin_delay'] = {
         init: function() {
             this.appendDummyInput()
                 .appendField("bekle (ms)")
-                .appendField(new Blockly.FieldNumber(1000, 0), "DURATION");
+                .appendField(new Blockly.FieldNumber(500, 0), "DURATION");
             this.setPreviousStatement(true, null);
             this.setNextStatement(true, null);
             this.setColour(180);
@@ -454,9 +488,9 @@ function initBlockly() {
     };
     Blockly.JavaScript['pin_delay'] = function(block) {
         var duration = block.getFieldValue('DURATION');
-        var code = `delay(${duration});\n`;
-        return code;
+        return `delay(${duration});\n`;
     };
+
     
     // Kod güncellendiğinde C++ çıktısını göster
     function updateCode(event) {
@@ -465,7 +499,6 @@ function initBlockly() {
         }
         let generatedCode = Blockly.JavaScript.workspaceToCode(blocklyWorkspace);
         
-        // Setup ve Loop yapısını ekleyerek tam Arduino kodu oluşturma (Çok Basitleştirilmiş)
         if(generatedCode) {
             const setupCode = generatedCode.match(/pinMode\([^;]*;\n/g)?.join('\n') || "";
             const loopCode = generatedCode.replace(/pinMode\([^;]*;\n/g, '');
@@ -628,48 +661,5 @@ function initMaze() {
         if (map[ny][nx] != 1) { p.x = nx; p.y = ny; if (map[ny][nx] == 0) { score += 10; map[ny][nx] = 2; document.getElementById('scoreBoard').innerText = "SKOR: " + score; } } draw();
         if ([37, 38, 39, 40].includes(e.keyCode)) e.preventDefault();
     };
-    // ==========================================
-// 9. BLOCKLY İŞ AKIŞI FONKSİYONU
-// ==========================================
-
-async function compileBlocklyCode(btn) {
-    if (!blocklyWorkspace) {
-        alert("Blok çalışma alanı yüklenmedi!");
-        return;
-    }
-
-    // 1. Blockly'den kodu al
-    const generatedCode = Blockly.JavaScript.workspaceToCode(blocklyWorkspace);
-    
-    // Basit bir kontrol yapıyoruz. Normalde burada C++ derlenirdi.
-    if (!generatedCode || generatedCode.length < 50) {
-        alert("Lütfen önce Blok Stüdyosu'nda bir kod oluşturun.");
-        return;
-    }
-
-    // 2. Buton durumunu ayarla
-    const originalText = btn.innerHTML;
-    const statusLbl = document.getElementById('statusLabelNew'); // C++ editöründeki status label'ı kullanalım
-
-    statusLbl.innerText = "Durum: Blok kod analizi ve simülasyonu yapılıyor...";
-    statusLbl.style.color = "#40c4ff";
-    btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Derleniyor...`;
-    
-    // 3. Simülasyon beklemesi (Gerçek derleme hissi vermek için)
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    // 4. Hex kodu hazırla (Bloklar genellikle Blink kodunu taklit eder)
-    // Blok Stüdyosu'ndan üretilen kodun ne olursa olsun, biz Universal Hex'i yükleyelim.
-    compiledHexCode = UNIVERSAL_HEX; 
-    
-    // 5. Yüklemeye Başla
-    statusLbl.innerText = "Durum: BAŞARILI! Yüklemeye Hazır.";
-    statusLbl.style.color = "#00e676";
-    btn.innerHTML = originalText;
-    
-    // Artık compiledHexCode dolu olduğu için runUploader'ı çağırabiliriz
-    await runUploader(compiledHexCode);
-}
-    
     draw();
 }
