@@ -287,4 +287,61 @@ function initMaze() {
         drawMap(); if([37,38,39,40].includes(e.keyCode)) e.preventDefault();
     };
     drawMap();
+    // ==========================================
+// FIRMWARE İNDİRME FONKSİYONU
+// ==========================================
+function downloadFirmware() {
+    // Senin yazdığın Arduino Kodu
+    const arduinoCode = `
+// --- SALİH EĞİTİM FIRMWARE v1.0 ---
+// Bu kod Arduino'yu Web üzerinden yönetilebilir hale getirir.
+
+String gelenKomut = "";
+
+void setup() {
+  Serial.begin(115200);
+  for(int i=2; i<=13; i++){
+    pinMode(i, OUTPUT);
+  }
+  // Hazır animasyonu
+  digitalWrite(13, HIGH); delay(100); digitalWrite(13, LOW); delay(100);
+  digitalWrite(13, HIGH); delay(100); digitalWrite(13, LOW);
+}
+
+void loop() {
+  while (Serial.available() > 0) {
+    char c = Serial.read();
+    if (c == '\\n') {
+      komutuIsle(gelenKomut);
+      gelenKomut = "";
+    } else {
+      gelenKomut += c;
+    }
+  }
+}
+
+void komutuIsle(String komut) {
+  if (komut.startsWith("PIN:")) {
+    int ilkIkiNokta = komut.indexOf(':');
+    int sonIkiNokta = komut.lastIndexOf(':');
+    String pinStr = komut.substring(ilkIkiNokta + 1, sonIkiNokta);
+    String durumStr = komut.substring(sonIkiNokta + 1);
+    digitalWrite(pinStr.toInt(), durumStr.toInt());
+  }
+}
+`;
+
+    // Dosya oluştur ve indirt
+    const blob = new Blob([arduinoCode], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = "Salih_Egitim_Firmware.ino"; // İnecek dosya adı
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+    
+    logConsole("⬇️ Firmware dosyası indirildi. Arduino'ya yükleyiniz.");
+}
 }
