@@ -8,6 +8,7 @@ let blinkInterval = null;
 let blocklyWorkspace = null; // Blockly çalışma alanı objesi
 
 // ÖN TANIMLI HEX: Seri portu dinleyen temel Arduino kodu.
+// Bu hex kodu, '1' gelince LED yakar, '0' gelince söndürür (Pin 13)
 const UNIVERSAL_HEX = `:100000000C945C000C946E000C946E000C946E0025
 :100010000C946E000C946E000C946E000C946E000C
 :100020000C946E000C946E000C946E000C946E00FC
@@ -168,7 +169,7 @@ async function compileCode() {
 }
 
 // ==========================================
-// 4. IOT: YÜKLEME (AVRgirl)
+// 4. IOT: YÜKLEME (AVRgirl) - Çözüm: Hex Kontrolü Eklendi
 // ==========================================
 async function runUploader(hexDataToUse = null) {
     const hexToFlash = hexDataToUse || compiledHexCode;
@@ -186,7 +187,19 @@ async function runUploader(hexDataToUse = null) {
     if(statusLbl) statusLbl.innerText = "Port Seçiliyor...";
 
     try {
-        const blob = new Blob([hexToFlash], { type: 'application/octet-stream' });
+        // *** HATA ÇÖZÜMÜ: Hex kodu temizle ve sadece geçerli satırları al ***
+        let cleanHex = hexToFlash.trim();
+        cleanHex = cleanHex
+            .replace(/\r\n/g, '\n') // Satır sonlarını standarda getir (Windows'tan kaynaklanan hataları çözer)
+            .split('\n')
+            .filter(line => line.trim().startsWith(':')) // Sadece Intel HEX satırlarını tut
+            .join('\n');
+        
+        if (cleanHex.length < 10) {
+            throw new Error("Temizlenen HEX kodu çok kısa veya geçersiz formatta.");
+        }
+
+        const blob = new Blob([cleanHex], { type: 'application/octet-stream' });
         const reader = new FileReader();
 
         reader.onload = function(event) {
@@ -195,7 +208,8 @@ async function runUploader(hexDataToUse = null) {
 
             avrgirl.flash(fileBuffer, (error) => {
                 if (error) {
-                    alert("Yükleme Hatası: " + error.message);
+                    // Checksum hatası genellikle buraya düşer
+                    alert("Yükleme Hatası: " + error.message + " - Lütfen tarayıcı konsolunu (F12) kontrol edin.");
                 } else {
                     alert("BAŞARILI! Kod Yüklendi. Şimdi 'Bağlan' diyip kontrol edebilirsiniz.");
                     const badge = document.getElementById('statusBadge');
@@ -358,7 +372,6 @@ async function compileBlocklyCode(btn) {
         return;
     }
 
-    // 1. Blockly'den kodu al
     const generatedCode = Blockly.JavaScript.workspaceToCode(blocklyWorkspace);
     
     if (!generatedCode || generatedCode.length < 50) {
@@ -366,7 +379,6 @@ async function compileBlocklyCode(btn) {
         return;
     }
 
-    // 2. Buton durumunu ayarla
     const originalText = btn.innerHTML;
     const statusLbl = document.getElementById('statusLabelNew'); 
 
@@ -374,18 +386,15 @@ async function compileBlocklyCode(btn) {
     statusLbl.style.color = "#40c4ff";
     btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Derleniyor...`;
     
-    // 3. Simülasyon beklemesi
     await new Promise(resolve => setTimeout(resolve, 1500));
     
-    // 4. Hex kodu hazırla (Sunucusuz olduğu için UNIVERSAL HEX kodunu kullanıyoruz)
+    // Sunucusuz olduğu için UNIVERSAL HEX kodunu kullanıyoruz
     compiledHexCode = UNIVERSAL_HEX; 
     
-    // 5. Yüklemeye Başla
     statusLbl.innerText = "Durum: BAŞARILI! Yüklemeye Hazır.";
     statusLbl.style.color = "#00e676";
     btn.innerHTML = originalText;
     
-    // Yükleme sürecini başlat (COM portu burada sorulacak)
     await runUploader(compiledHexCode);
 }
 
@@ -424,7 +433,7 @@ function initBlockly() {
         scrollbars: true,
         trashcan: true,
         horizontalLayout: false,
-        theme: Blockly.Themes.Dark, // KOYU TEMA
+        theme: Blockly.Themes.Dark, 
         zoom: {
             controls: true,
             wheel: true,
@@ -435,8 +444,8 @@ function initBlockly() {
         }
     });
 
-    // --- ÖZEL ARDUINO BLOK TANIMLARI (Pin Mode, Digital Write, Delay) ---
-    // (Kodları tekrar yazmıyorum, önceki cevapta zaten varlar)
+    // --- ÖZEL ARDUINO BLOK TANIMLARI ---
+    
     Blockly.Blocks['pin_mode'] = {
         init: function() {
             this.appendDummyInput()
