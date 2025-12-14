@@ -11,9 +11,14 @@ let blinkInterval = null;   // Blink zamanlayıcısı
 // ==========================================
 function showSection(id, btn) {
     document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
+    // Not: Tüm bölümlerin aktif/deaktif edilmesini sağlayan temel yapı.
     document.getElementById(id).classList.add('active');
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
+    // Eğer bir link değilse (örneğin CV linki), butona active class'ı eklenir.
+    if (btn && btn.classList) {
+        btn.classList.add('active');
+    }
+    
     if (id !== 'games') stopCurrentGame();
 }
 
@@ -43,22 +48,19 @@ window.onload = fetchGithubRepos;
 // ==========================================
 // 3. IOT: DERLEME (Backend)
 // ==========================================
-// ==========================================
-// 3. IOT: DERLEME (Backend)
-// ==========================================
 async function compileCode() {
     const editorVal = document.getElementById('cppEditor').value;
     const statusLbl = document.getElementById('statusLabelNew');
     const btnUpload = document.getElementById('btnUploadNew');
 
-    // !!! BURAYI KENDİ RENDER URL'NİZ İLE DEĞİŞTİRİN !!!
-    const RENDER_SERVER_URL = 'https://portfolyo-1w2x.onrender.com'; // Örnek URL
+    // Bu URL'yi kendi Render sunucunuzun adresiyle değiştirmeyi unutmayın.
+    const RENDER_SERVER_URL = 'https://arduino-backend-ajkr.onrender.com';
 
     statusLbl.innerText = "Durum: Sunucuda derleniyor... (Bekleyin)";
     statusLbl.style.color = "#40c4ff";
 
     try {
-        const response = await fetch(`${https://portfolyo-1w2x.onrender.com}/compile`, { // URL Güncellendi
+        const response = await fetch(`${RENDER_SERVER_URL}/compile`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ code: editorVal })
@@ -86,7 +88,7 @@ async function compileCode() {
 }
 
 // ==========================================
-// 4. IOT: YÜKLEME (AVRgirl) - DÜZELTİLDİ
+// 4. IOT: YÜKLEME (AVRgirl)
 // ==========================================
 async function runUploader(hexDataToUse = null) {
     const hexToFlash = hexDataToUse || compiledHexCode;
@@ -96,21 +98,15 @@ async function runUploader(hexDataToUse = null) {
         return;
     }
     
-    // Eğer bağlantı varsa önce onu tamamen kes
-    // Çünkü AVRGirl portu tek başına kullanmak ister.
     if (serialPort) {
         console.log("Mevcut bağlantı yükleme için kesiliyor...");
-        await disconnectSerial(true); // true = UI güncelleme yapmadan sessizce kes
+        await disconnectSerial(true);
     }
 
     const statusLbl = document.getElementById('statusLabelNew') || document.getElementById('statusBadge');
     if(statusLbl) statusLbl.innerText = "Port Seçiliyor...";
 
     try {
-        // DİKKAT: Burada navigator.serial.requestPort() KULLANMIYORUZ.
-        // AVRGirl kütüphanesi flash() fonksiyonu içinde kendi port seçim ekranını açacak.
-        // Böylece 2 kere sorma sorunu çözülür.
-        
         const blob = new Blob([hexToFlash], { type: 'application/octet-stream' });
         const reader = new FileReader();
 
@@ -162,14 +158,14 @@ async function runQuickTest() {
     if(statusLbl) statusLbl.innerHTML = '<span style="color:orange">Dosya okunuyor...</span>';
 
     try {
-        const response = await fetch('firmware.hex');
+        // Not: Bu dosyanın kök dizinde bulunduğunu varsayar.
+        const response = await fetch('firmware.hex'); 
         if (!response.ok) throw new Error("firmware.hex dosyası bulunamadı!");
         
         const hexText = await response.text();
 
         if(btn) btn.innerHTML = '<i class="fas fa-microchip"></i> Yükleniyor...';
         
-        // Yükleyiciye gönder
         await runUploader(hexText);
 
     } catch (err) {
@@ -193,7 +189,6 @@ async function connectSerial() {
         return;
     }
 
-    // Eğer zaten bağlıysa tekrar bağlanmaya çalışma
     if (serialPort && serialPort.readable) {
         alert("Zaten bağlı!");
         return;
@@ -204,10 +199,10 @@ async function connectSerial() {
         await serialPort.open({ baudRate: 115200 });
 
         const textEncoder = new TextEncoderStream();
-        const writableStreamClosed = textEncoder.readable.pipeTo(serialPort.writable);
+        textEncoder.readable.pipeTo(serialPort.writable);
         serialWriter = textEncoder.writable.getWriter();
 
-        // Arayüz
+        // Arayüz Güncelleme
         const badge = document.getElementById('statusBadge');
         if(badge) {
             badge.innerHTML = '<i class="fas fa-circle" style="color:#00e676; font-size:0.6rem;"></i> Bağlandı';
@@ -215,6 +210,7 @@ async function connectSerial() {
         }
         document.getElementById('serialConsole').innerHTML += "<br>> <span style='color:#0f0'>Bağlantı Başarılı!</span>";
 
+        // Butonların görünürlüğünü ayarla
         document.getElementById('btnConnect').style.display = 'none';
         document.getElementById('btnDisconnect').style.display = 'inline-flex';
 
@@ -224,11 +220,11 @@ async function connectSerial() {
     }
 }
 
-// Sessiz mod eklendi: Yükleme öncesi otomatik kapatmada uyarı vermesin diye
 async function disconnectSerial(silent = false) {
     if(blinkInterval) {
         clearInterval(blinkInterval);
         blinkInterval = null;
+        document.getElementById('serialConsole').innerHTML += "<br>> <span style='color:orange'>BLINK Durduruldu.</span>";
     }
 
     try {
@@ -253,6 +249,7 @@ async function disconnectSerial(silent = false) {
         
         document.getElementById('serialConsole').innerHTML += "<br>> <span style='color:orange'>Bağlantı Kesildi.</span>";
     
+        // Butonların görünürlüğünü ayarla
         document.getElementById('btnConnect').style.display = 'inline-flex';
         document.getElementById('btnDisconnect').style.display = 'none';
     }
@@ -265,9 +262,11 @@ async function runBlock(command) {
     }
 
     try {
+        // BLINK döngüsünü durdur
         if(blinkInterval) {
             clearInterval(blinkInterval);
             blinkInterval = null;
+            document.getElementById('serialConsole').innerHTML += "<br>> <span style='color:orange'>BLINK Durduruldu.</span>";
         }
 
         if (command === 'ON') {
@@ -286,7 +285,10 @@ async function runBlock(command) {
                 toggle = !toggle;
                 try {
                     await serialWriter.write(toggle ? "1" : "0");
-                } catch(e) { clearInterval(blinkInterval); }
+                } catch(e) { 
+                    clearInterval(blinkInterval); 
+                    blinkInterval = null;
+                }
             }, 500); 
         }
     } catch (err) {
@@ -295,13 +297,14 @@ async function runBlock(command) {
 }
 
 // ==========================================
-// 7. OYUNLAR
+// 7. OYUNLAR (Düzeltilmiş ve Tamamlanmış Kısım)
 // ==========================================
 let canvas = document.getElementById('gameCanvas');
 let ctx = canvas ? canvas.getContext('2d') : null;
 let gameInterval, currentGame, score = 0;
 
 function stopCurrentGame() {
+    if(!ctx && canvas) ctx = canvas.getContext('2d');
     if(!ctx) return;
     clearInterval(gameInterval);
     ctx.clearRect(0, 0, 400, 400);
@@ -309,7 +312,12 @@ function stopCurrentGame() {
 }
 
 function startGame(t, b) {
-    if(!ctx) return;
+    // Canvas ve Context'i tekrar kontrol et
+    if(!ctx) { 
+        canvas = document.getElementById('gameCanvas');
+        ctx = canvas ? canvas.getContext('2d') : null;
+        if (!ctx) return; 
+    }
     stopCurrentGame();
     document.querySelectorAll('.game-card').forEach(c => c.classList.remove('active-game'));
     if(b) b.classList.add('active-game');
@@ -389,7 +397,7 @@ function initMaze() {
     }
     gameInterval = setInterval(() => {
         if (Math.random() > 0.5) {
-            let m = [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }].filter(d => map[g.y + d.y][g.x + d.x] != 1);
+            let m = [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }].filter(d => map[g.y + d.y] && map[g.y + d.y][g.x + d.x] != 1);
             if (m.length) { let nm = m[Math.floor(Math.random() * m.length)]; g.x += nm.x; g.y += nm.y; }
         }
         if (p.x == g.x && p.y == g.y) { score = 0; p = { x: 1, y: 1 }; g = { x: 8, y: 5 }; alert("Yakaladın!"); } draw();
@@ -398,7 +406,7 @@ function initMaze() {
         if (currentGame !== 'maze') return;
         let nx = p.x, ny = p.y;
         if (e.keyCode == 37) nx--; if (e.keyCode == 39) nx++; if (e.keyCode == 38) ny--; if (e.keyCode == 40) ny++;
-        if (map[ny][nx] != 1) { p.x = nx; p.y = ny; if (map[ny][nx] == 0) { score += 10; map[ny][nx] = 2; document.getElementById('scoreBoard').innerText = "SKOR: " + score; } } draw();
+        if (map[ny] && map[ny][nx] != 1) { p.x = nx; p.y = ny; if (map[ny][nx] == 0) { score += 10; map[ny][nx] = 2; document.getElementById('scoreBoard').innerText = "SKOR: " + score; } } draw();
         if ([37, 38, 39, 40].includes(e.keyCode)) e.preventDefault();
     };
     draw();
