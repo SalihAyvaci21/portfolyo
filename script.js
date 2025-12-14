@@ -77,7 +77,11 @@ async function sendCommand(cmd) {
 // FIRMWARE YÜKLEME (HEX)
 async function uploadHex() {
     const btn = document.getElementById('btnUpload');
-    if (typeof AvrgirlArduino === 'undefined') { logConsole("❌ Kütüphane yüklenemedi!"); return; }
+    // Kütüphane Yüklendi mi?
+    if (typeof window.AvrgirlArduino === 'undefined') {
+        logConsole("❌ Kütüphane (library.js) bulunamadı! Dosyayı indirdiniz mi?");
+        return;
+    }
     if(!confirm("Arduino Uno'ya kod yüklenecek. Onaylıyor musun?")) return;
 
     btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
