@@ -268,25 +268,6 @@ function initMaze() {
         ctx.fillStyle = '#ffff00'; ctx.beginPath(); ctx.arc(player.x*tileSize+20, player.y*tileSize+20, 15, 0.2*Math.PI, 1.8*Math.PI); ctx.lineTo(player.x*tileSize+20, player.y*tileSize+20); ctx.fill();
         ctx.fillStyle = '#ff0000'; ctx.fillRect(ghost.x*tileSize+5, ghost.y*tileSize+5, 30, 30);
     }
-    function moveGhost() {
-        let dx = player.x - ghost.x; let dy = player.y - ghost.y;
-        let moves = [];
-        if(map[ghost.y][ghost.x+1] !== 1) moves.push({x:1, y:0});
-        if(map[ghost.y][ghost.x-1] !== 1) moves.push({x:-1, y:0});
-        if(map[ghost.y+1][ghost.x] !== 1) moves.push({x:0, y:1});
-        if(map[ghost.y-1][ghost.x] !== 1) moves.push({x:0, y:-1});
-        if(moves.length>0) { let m = moves[Math.floor(Math.random()*moves.length)]; ghost.x+=m.x; ghost.y+=m.y; }
-        if(ghost.x===player.x && ghost.y===player.y) { alert("Yakaladın!"); score=0; player={x:1,y:1}; ghost={x:8,y:7}; }
-    }
-    gameInterval = setInterval(() => { moveGhost(); drawMap(); }, 500);
-    document.onkeydown = function(e) {
-        if(currentGame!=='maze') return;
-        let nx=player.x; let ny=player.y;
-        if(e.keyCode===37) nx--; if(e.keyCode===39) nx++; if(e.keyCode===38) ny--; if(e.keyCode===40) ny++;
-        if(map[ny][nx]!==1) { player.x=nx; player.y=ny; if(map[ny][nx]===0) { map[ny][nx]=2; score+=10; document.getElementById('scoreBoard').innerText="SKOR: "+score; } }
-        drawMap(); if([37,38,39,40].includes(e.keyCode)) e.preventDefault();
-    };
-    drawMap();
     // ==========================================
 // FIRMWARE İNDİRME FONKSİYONU
 // ==========================================
@@ -344,4 +325,24 @@ void komutuIsle(String komut) {
     
     logConsole("⬇️ Firmware dosyası indirildi. Arduino'ya yükleyiniz.");
 }
+    function moveGhost() {
+        let dx = player.x - ghost.x; let dy = player.y - ghost.y;
+        let moves = [];
+        if(map[ghost.y][ghost.x+1] !== 1) moves.push({x:1, y:0});
+        if(map[ghost.y][ghost.x-1] !== 1) moves.push({x:-1, y:0});
+        if(map[ghost.y+1][ghost.x] !== 1) moves.push({x:0, y:1});
+        if(map[ghost.y-1][ghost.x] !== 1) moves.push({x:0, y:-1});
+        if(moves.length>0) { let m = moves[Math.floor(Math.random()*moves.length)]; ghost.x+=m.x; ghost.y+=m.y; }
+        if(ghost.x===player.x && ghost.y===player.y) { alert("Yakaladın!"); score=0; player={x:1,y:1}; ghost={x:8,y:7}; }
+    }
+    gameInterval = setInterval(() => { moveGhost(); drawMap(); }, 500);
+    document.onkeydown = function(e) {
+        if(currentGame!=='maze') return;
+        let nx=player.x; let ny=player.y;
+        if(e.keyCode===37) nx--; if(e.keyCode===39) nx++; if(e.keyCode===38) ny--; if(e.keyCode===40) ny++;
+        if(map[ny][nx]!==1) { player.x=nx; player.y=ny; if(map[ny][nx]===0) { map[ny][nx]=2; score+=10; document.getElementById('scoreBoard').innerText="SKOR: "+score; } }
+        drawMap(); if([37,38,39,40].includes(e.keyCode)) e.preventDefault();
+    };
+    drawMap();
+    
 }
