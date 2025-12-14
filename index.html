@@ -101,16 +101,24 @@
                 <div style="position: relative;">
                     <textarea id="cppEditor" style="width: 100%; height: 200px; background: #111; color: #0f0; border: 1px solid #444; padding: 10px; font-family: 'Consolas', monospace; border-radius: 4px; resize: vertical;">
 void setup() {
+  Serial.begin(115200); // Seri haberleşmeyi başlat
   pinMode(13, OUTPUT);
 }
 
 void loop() {
-  digitalWrite(13, HIGH);
-  delay(100);
-  digitalWrite(13, LOW);
-  delay(100);
+  // Eğer seri porttan veri gelmişse
+  if (Serial.available() > 0) {
+    char komut = Serial.read(); // Veriyi oku
+    
+    if (komut == '1') {
+      digitalWrite(13, HIGH); // LED YAK
+    } 
+    else if (komut == '0') {
+      digitalWrite(13, LOW);  // LED SÖNDÜR
+    }
+  }
 }
-                    </textarea>
+</textarea>
                     <div id="statusLabelNew" style="margin-top: 5px; font-size: 0.9rem; color: #888;">Durum: Bekleniyor...</div>
                 </div>
 
@@ -191,3 +199,4 @@ void loop() {
 
 </body>
 </html>
+
