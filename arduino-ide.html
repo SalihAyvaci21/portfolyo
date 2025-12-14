@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Web Arduino IDE (Hata Ayıklama Modu)</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #1a1a1a; color: #f0f0f0; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        h1 { color: #00bcd4; margin-bottom: 10px; }
+        #editor { width: 80%; height: 300px; background: #252526; color: #dcdcaa; border: 1px solid #3e3e42; padding: 15px; font-family: 'Consolas', monospace; font-size: 14px; border-radius: 5px; }
+        .controls { margin-top: 20px; display: flex; gap: 15px; }
+        button { padding: 12px 24px; font-size: 16px; cursor: pointer; background: #00bcd4; border: none; color: black; font-weight: bold; border-radius: 4px; transition: all 0.2s; }
+        button:hover { background: #00acc1; transform: translateY(-2px); }
+        button:disabled { background: #444; color: #888; cursor: not-allowed; }
+        #status { margin-top: 20px; padding: 15px; border-radius: 4px; background: #333; width: 80%; text-align: center; border: 1px solid #444; min-height: 20px; }
+        .success { color: #4caf50; border-color: #4caf50 !important; background: #1b3a1d !important; }
+        .error { color: #ff5252; border-color: #ff5252 !important; background: #3a1b1b !important; }
+        .info { color: #40c4ff; }
+    </style>
+</head>
+<body>
+
+    <h1>Web Arduino IDE</h1>
+    
+    <textarea id="editor">
+void setup() {
+  pinMode(13, OUTPUT);
+}
+
+void loop() {
+  digitalWrite(13, HIGH);
+  delay(200); 
+  digitalWrite(13, LOW);
+  delay(200);
+}
+    </textarea>
+
+    <div class="controls">
+        <button id="btn-compile">1. Derle (Server)</button>
+        <button id="btn-upload" disabled>2. Yükle (USB)</button>
+    </div>
+
+    <div id="status" class="info">Hazır. Önce kodu derleyin.</div>
+
+    <script src="avrgirl-arduino.global.js"></script>
+
+    <script>
+        const btnCompile = document.getElementById('btn-compile');
+        const btnUpload = document.getElementById('btn-upload');
+        const statusDiv = document.getElementById('status');
+        const editor = document.getElementById('editor');
+        
+        let compiledHex = null;
+
+        // --- 1. DERLEME (SUNUCUYA GÖNDERME) ---
+        btnCompile.addEventListener('click', async () => {
+            statusDiv.className = "info";
+            statusDiv.innerText = "Sunucuya bağlanılıyor...";
+            
+            const sourceCode = editor.value;
+
+            try {
+                // Fetch isteğini yapıyoruz
+                const response = await fetch('https://arduino-backend-ajkr.onrender.com/compile', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code: sourceCode })
+                });
+
+                // Eğer sunucudan cevap geldiyse ama başarılı değilse (örn: 500 hatası)
+                if (!response.ok) {
+                    const errData = await response.json();
+                    throw new Error("Sunucu Hatası: " + (errData.error || response.statusText));
+                }
+
+                // JSON verisini al
+                const data = await response.json();
+                console.log("Sunucudan Gelen Cevap:", data); // F12 konsoluna bakabilirsin
+
+                if (data.hex) {
+                    compiledHex = data.hex.trim();
+                    statusDiv.className = "success";
+                    statusDiv.innerText = "Derleme Başarılı! Yükle butonu açıldı.";
+                    // BUTONU AKTİF ET
+                    btnUpload.disabled = false;
+                    btnUpload.style.backgroundColor = "#00e676"; // Görsel olarak da yeşil yap
+                } else {
+                    throw new Error("Sunucudan cevap geldi ama HEX kodu boş!");
+                }
+
+            } catch (error) {
+                console.error(error);
+                statusDiv.className = "error";
+                statusDiv.innerText = "HATA: " + error.message;
+                // Ekrana uyarı çıkartalım ki gözden kaçmasın
+                alert("BİR SORUN VAR:\n" + error.message + "\n\n(Detaylar için F12 tuşuna basıp Console sekmesine bakabilirsin)");
+            }
+        });
+
+        // --- 2. YÜKLEME (WEB SERIAL) ---
+        btnUpload.addEventListener('click', async () => {
+            if (!compiledHex) return;
+            statusDiv.className = "info";
+            statusDiv.innerText = "Port seçimi bekleniyor...";
+
+            try {
+                await navigator.serial.requestPort();
+                statusDiv.innerText = "Arduino'ya yükleniyor...";
+
+                const blob = new Blob([compiledHex], { type: 'application/octet-stream' });
+                const reader = new FileReader();
+
+                reader.onload = function(event) {
+                    const fileBuffer = event.target.result;
+                    const avrgirl = new AvrgirlArduino({
+                        board: 'uno', 
+                        debug: true
+                    });
+
+                    avrgirl.flash(fileBuffer, (error) => {
+                        if (error) {
+                            statusDiv.className = "error";
+                            statusDiv.innerText = "Yükleme Hatası: " + error.message;
+                        } else {
+                            statusDiv.className = "success";
+                            statusDiv.innerText = "BAŞARILI! Kod çalışıyor.";
+                        }
+                    });
+                };
+                reader.readAsArrayBuffer(blob);
+            } catch (err) {
+                statusDiv.className = "error";
+                statusDiv.innerText = "Hata: " + err;
+            }
+        });
+    </script>
+</body>
+
+</html>
+
+
