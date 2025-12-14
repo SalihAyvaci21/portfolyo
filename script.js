@@ -10,7 +10,6 @@ let blinkInterval = null;   // Blink zamanlayıcısı
 // 1. NAVİGASYON VE SAYFA GEÇİŞLERİ
 // ==========================================
 function showSection(id, btn) {
-    console.log("Sayfa değiştiriliyor:", id);
     document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
     document.getElementById(id).classList.add('active');
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
@@ -25,8 +24,7 @@ async function fetchGithubRepos() {
     const username = 'SalihAyvaci21';
     const container = document.getElementById('repos-container');
     const gizlenecekler = ["SalihAyvaci21", "portfolyo"];
-
-    if (!container) return; // Hata önleyici
+    if (!container) return;
 
     try {
         const response = await fetch(`https://api.github.com/users/${username}/repos?sort=pushed&direction=desc`);
@@ -38,9 +36,8 @@ async function fetchGithubRepos() {
             const desc = repo.description || 'Proje detayı yükleniyor...';
             container.innerHTML += `<div class="card"><div class="card-header"><h3><i class="fas fa-code-branch"></i> ${repo.name}</h3><a href="${repo.html_url}" target="_blank" class="repo-link"><i class="fas fa-external-link-alt"></i></a></div><p>${desc}</p><div class="tech-stack"><span class="tech-tag">${lang}</span><span class="tech-tag"><i class="far fa-star"></i> ${repo.stargazers_count}</span></div></div>`;
         });
-    } catch (e) { console.error("Github Hatası:", e); }
+    } catch (e) { console.error(e); }
 }
-// Sayfa yüklendiğinde çalıştır
 window.onload = fetchGithubRepos;
 
 // ==========================================
@@ -83,7 +80,7 @@ async function compileCode() {
 }
 
 // ==========================================
-// 4. IOT: YÜKLEME (AVRgirl)
+// 4. IOT: YÜKLEME (AVRgirl) - DÜZELTİLDİ (Tek Port Seçimi)
 // ==========================================
 async function runUploader(hexDataToUse = null) {
     const hexToFlash = hexDataToUse || compiledHexCode;
@@ -93,22 +90,24 @@ async function runUploader(hexDataToUse = null) {
         return;
     }
     
-    // Yükleme yapmadan önce portu temizle
-    await disconnectSerial();
+    // Eğer blok kontrolü için port açıksa, önce onu kapatalım.
+    // Çünkü AVRGirl kendi bağlantısını kurmak isteyecek.
+    if (serialPort) {
+        await disconnectSerial();
+    }
 
     const statusLbl = document.getElementById('statusLabelNew') || document.getElementById('statusBadge');
     if(statusLbl) statusLbl.innerText = "Port Seçiliyor...";
 
     try {
-        // Kullanıcıdan port izni iste
-        const port = await navigator.serial.requestPort(); 
+        // BURADA navigator.serial.requestPort() KALDIRILDI.
+        // AVRGirl kütüphanesi flash() fonksiyonu çağrıldığında kendisi soracak.
         
         const blob = new Blob([hexToFlash], { type: 'application/octet-stream' });
         const reader = new FileReader();
 
         reader.onload = function(event) {
             const fileBuffer = event.target.result;
-            // AVRGirl kütüphanesini başlat (kendi içinde portu açar)
             const avrgirl = new AvrgirlArduino({ board: 'uno', debug: true });
 
             avrgirl.flash(fileBuffer, (error) => {
@@ -176,9 +175,8 @@ async function runQuickTest() {
 // ==========================================
 
 async function connectSerial() {
-    console.log("Bağlan butonuna basıldı.");
     if (!navigator.serial) {
-        alert("Tarayıcınız Seri Port desteklemiyor. Chrome veya Edge kullanın.");
+        alert("Tarayıcınız Seri Port desteklemiyor.");
         return;
     }
 
@@ -190,16 +188,14 @@ async function connectSerial() {
         const writableStreamClosed = textEncoder.readable.pipeTo(serialPort.writable);
         serialWriter = textEncoder.writable.getWriter();
 
-        // Arayüz Güncellemesi
+        // Arayüz
         const badge = document.getElementById('statusBadge');
         if(badge) {
             badge.innerHTML = '<i class="fas fa-circle" style="color:#00e676; font-size:0.6rem;"></i> Bağlandı';
             badge.style.color = "#00e676";
         }
-        
         document.getElementById('serialConsole').innerHTML += "<br>> <span style='color:#0f0'>Bağlantı Başarılı!</span>";
 
-        // Butonları değiştir
         document.getElementById('btnConnect').style.display = 'none';
         document.getElementById('btnDisconnect').style.display = 'inline-flex';
 
@@ -209,10 +205,10 @@ async function connectSerial() {
     }
 }
 
+// DÜZELTİLDİ: Bağlantıyı kesin olarak kapatan fonksiyon
 async function disconnectSerial() {
     console.log("Bağlantı kesiliyor...");
     
-    // Blink varsa durdur
     if(blinkInterval) {
         clearInterval(blinkInterval);
         blinkInterval = null;
@@ -228,10 +224,10 @@ async function disconnectSerial() {
             serialPort = null;
         }
     } catch(e) {
-        console.log("Kapatma sırasında hata (önemsiz):", e);
+        console.log("Port kapatılırken hata (önemsiz olabilir):", e);
     }
 
-    // Arayüzü eski haline getir
+    // Arayüzü güncelle
     const badge = document.getElementById('statusBadge');
     if(badge) {
         badge.innerHTML = '<i class="fas fa-circle" style="font-size:0.6rem;"></i> Bağlantı Yok';
@@ -244,17 +240,13 @@ async function disconnectSerial() {
     document.getElementById('btnDisconnect').style.display = 'none';
 }
 
-// Butonlara basılınca çalışan fonksiyon
 async function runBlock(command) {
-    console.log("Komut Gönderiliyor:", command);
-
     if (!serialWriter) {
         alert("Önce 'Bağlan' butonuna basarak bağlantıyı kurmalısınız!");
         return;
     }
 
     try {
-        // Yeni bir komut geldiğinde önceki blink işlemini durdur
         if(blinkInterval) {
             clearInterval(blinkInterval);
             blinkInterval = null;
@@ -271,29 +263,21 @@ async function runBlock(command) {
         else if (command === 'BLINK') {
             document.getElementById('serialConsole').innerHTML += `<br>> BLINK BAŞLATILDI...`;
             let toggle = false;
-            // Firmware değiştirmeden JS ile blink yapıyoruz
             blinkInterval = setInterval(async () => {
-                if(!serialWriter) { 
-                    clearInterval(blinkInterval); 
-                    return; 
-                }
+                if(!serialWriter) { clearInterval(blinkInterval); return; }
                 toggle = !toggle;
                 try {
                     await serialWriter.write(toggle ? "1" : "0");
-                } catch(e) {
-                    console.error("Yazma hatası:", e);
-                    clearInterval(blinkInterval);
-                }
-            }, 500); // 500ms aralıkla yak/söndür
+                } catch(e) { clearInterval(blinkInterval); }
+            }, 500); 
         }
-        
     } catch (err) {
         alert("Gönderme Hatası: " + err);
     }
 }
 
 // ==========================================
-// 7. OYUNLAR
+// 7. OYUNLAR (SNAKE, TETRIS, MAZE)
 // ==========================================
 let canvas = document.getElementById('gameCanvas');
 let ctx = canvas ? canvas.getContext('2d') : null;
