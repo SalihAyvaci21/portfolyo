@@ -6,7 +6,7 @@
     <title>Salih Tekin Ayvacı | Portfolyo</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
-    <script src="avrgirl-arduino.global.js"></script> 
+    <script src="avrgirl-arduino.global.js"></script>
 </head>
 <body>
 
@@ -93,14 +93,7 @@ void loop() {
                             <button class="run-btn" onclick="runBlock('OFF')"><i class="fas fa-stop"></i></button>
                         </div>
                         
-                        <div class="code-block" style="background: linear-gradient(90deg, #FF9800, #F57C00);">
-                            <i class="fas fa-stopwatch"></i>
-                            <span>Pin</span>
-                            <select id="pinSelectBlink" class="block-input"><option value="13">13</option></select>
-                            <span>LED'ini</span> <strong>YANIP SÖNDÜR (BLINK)</strong>
-                            <button class="run-btn" onclick="runBlock('BLINK')"><i class="fas fa-play"></i></button>
                         </div>
-                    </div>
                 </div>
 
                 <div class="console-wrapper">
@@ -110,10 +103,7 @@ void loop() {
                             <button id="btnConnect" class="serial-btn connect" onclick="connectSerial()">
                                 <i class="fas fa-plug"></i> Bağlan
                             </button>
-                            <button id="btnDisconnect" class="serial-btn" style="display:none;" onclick="disconnectSerial()">
-                                <i class="fas fa-unlink"></i> Bağlantıyı Kes
-                            </button>
-                        </div>
+                            </div>
                     </div>
                     <div class="serial-console" id="serialConsole">
                         > Konsol Başlatıldı.
