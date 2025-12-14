@@ -6,6 +6,8 @@
     <title>Salih Tekin Ayvacı | Portfolyo</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
+    
+    <script src="https://unpkg.com/avrgirl-arduino@latest/dist/avrgirl-arduino-global.js"></script>
 </head>
 <body>
 
@@ -25,7 +27,6 @@
 
         <div class="social-links">
             <a href="https://github.com/SalihAyvaci21" target="_blank" class="social-icon"><i class="fab fa-github"></i></a>
-            <a href="https://instagram.com/salih_ayvaci21" target="_blank" class="social-icon"><i class="fab fa-instagram"></i></a>
             <a href="https://linkedin.com/in/salih-tekin-ayvaci" target="_blank" class="social-icon"><i class="fab fa-linkedin-in"></i></a>
         </div>
     </nav>
@@ -46,16 +47,14 @@
                         <div class="skill-bar"><div class="skill-info"><span>Lua / Unity</span><span>60%</span></div><div class="progress-bg"><div class="progress" style="width: 60%"></div></div></div>
                     </div>
                 </div>
-                
                 <div class="card">
                     <h3>Donanım & Kartlar</h3>
                     <div class="tech-stack" style="margin-top:15px;">
                         <span class="tech-tag">Tang Nano 9K</span>
                         <span class="tech-tag">Gatemate CCGM1A1</span>
                         <span class="tech-tag">STM32</span>
-                        <span class="tech-tag">Raspberry Pi 4</span>
-                        <span class="tech-tag">Raspberry Pi Pico</span>
-                        <span class="tech-tag">Arduino Uno/Mega</span>
+                        <span class="tech-tag">RPi Pico</span>
+                        <span class="tech-tag">Arduino Uno</span>
                         <span class="tech-tag">ESP32</span>
                     </div>
                 </div>
@@ -75,18 +74,14 @@
                 <div class="game-list">
                     <div class="card game-card" onclick="startGame('snake', this)">
                         <h3><i class="fas fa-worm"></i> Cyber Snake</h3>
-                        <p style="font-size:0.8rem; color:#aaa;">Klasik yılan oyunu.</p>
                     </div>
                     <div class="card game-card" onclick="startGame('tetris', this)">
                         <h3><i class="fas fa-cubes"></i> Neon Blocks</h3>
-                        <p style="font-size:0.8rem; color:#aaa;">Blok yerleştirmece.</p>
                     </div>
                     <div class="card game-card" onclick="startGame('maze', this)">
                         <h3><i class="fas fa-ghost"></i> Maze Chase</h3>
-                        <p style="font-size:0.8rem; color:#aaa;">Labirent kovalamaca.</p>
                     </div>
                 </div>
-
                 <div class="game-stage">
                     <div id="scoreBoard" class="score-board">SKOR: 0</div>
                     <canvas id="gameCanvas" width="400" height="400"></canvas>
@@ -97,7 +92,7 @@
 
         <section id="iot">
             <h1>🤖 Robotik Kodlama Laboratuvarı</h1>
-            <p>Arduino'nuzu USB ile bağlayın ve kod yazmadan bloklarla yönetin.</p>
+            <p>Arduino'nuzu USB ile bağlayın, kodu buradan yükleyin ve bloklarla yönetin.</p>
             
             <div class="card" style="border-top: 4px solid var(--primary);">
                 <div class="card-header" style="border-bottom: 1px solid #333; padding-bottom: 15px; margin-bottom: 0;">
@@ -107,21 +102,13 @@
                     </div>
                     
                     <div class="header-controls">
+                        <button id="btnUpload" class="serial-btn" style="background:#7000ff; color:white;" onclick="uploadHex()">
+                            <i class="fas fa-microchip"></i> Firmware Yükle
+                        </button>
+                        
                         <button id="btnConnect" class="serial-btn connect" onclick="connectSerial()">
                             <i class="fas fa-plug"></i> Bağlan
                         </button>
-                        <div class="header-controls">
-    <button class="serial-btn" style="background:#444; color:white;" onclick="downloadFirmware()">
-        <i class="fas fa-download"></i> Kodu İndir
-    </button>
-
-    <button id="btnConnect" class="serial-btn connect" onclick="connectSerial()">
-        <i class="fas fa-plug"></i> Bağlan
-    </button>
-    <button id="btnDisconnect" class="serial-btn off" onclick="disconnectSerial()" style="display:none; background:#ff0055; color:white;">
-        <i class="fas fa-power-off"></i> Kes
-    </button>
-</div>
                         <button id="btnDisconnect" class="serial-btn off" onclick="disconnectSerial()" style="display:none; background:#ff0055; color:white;">
                             <i class="fas fa-power-off"></i> Kes
                         </button>
@@ -131,54 +118,35 @@
                 <div class="iot-panel">
                     
                     <div class="block-list">
-                        
                         <div class="code-block" style="background: linear-gradient(90deg, #4C97FF, #2D7DE0);">
                             <i class="fas fa-lightbulb"></i>
                             <span>Pin</span>
-                            <select id="pinSelectOn" class="block-input">
-                                <option value="13">13 (Dahili)</option>
-                                <option value="12">12</option>
-                                <option value="11">11</option>
-                            </select>
-                            <span>LED'ini</span>
-                            <strong>YAK</strong>
-                            <button class="run-btn" title="Çalıştır" onclick="runBlock('ON')"><i class="fas fa-play"></i></button>
+                            <select id="pinSelectOn" class="block-input"><option value="13">13</option><option value="12">12</option><option value="11">11</option></select>
+                            <span>LED'ini</span> <strong>YAK</strong>
+                            <button class="run-btn" onclick="runBlock('ON')"><i class="fas fa-play"></i></button>
                         </div>
 
                         <div class="code-block" style="background: linear-gradient(90deg, #FF6680, #E02D4C);">
                             <i class="far fa-lightbulb"></i>
                             <span>Pin</span>
-                            <select id="pinSelectOff" class="block-input">
-                                <option value="13">13 (Dahili)</option>
-                                <option value="12">12</option>
-                                <option value="11">11</option>
-                            </select>
-                            <span>LED'ini</span>
-                            <strong>SÖNDÜR</strong>
-                            <button class="run-btn" title="Çalıştır" onclick="runBlock('OFF')"><i class="fas fa-play"></i></button>
+                            <select id="pinSelectOff" class="block-input"><option value="13">13</option><option value="12">12</option><option value="11">11</option></select>
+                            <span>LED'ini</span> <strong>SÖNDÜR</strong>
+                            <button class="run-btn" onclick="runBlock('OFF')"><i class="fas fa-play"></i></button>
                         </div>
 
                         <div class="code-block" style="background: linear-gradient(90deg, #FFBF00, #E0A800);">
                             <i class="fas fa-sync-alt"></i>
                             <span>Sürekli Tekrarla:</span>
-                            <select id="pinSelectBlink" class="block-input">
-                                <option value="13">13</option>
-                            </select>
-                            <span>Pinini Yak/Söndür</span>
-                            <button class="run-btn" title="Başlat/Durdur" onclick="toggleBlink()"><i class="fas fa-power-off"></i></button>
+                            <select id="pinSelectBlink" class="block-input"><option value="13">13</option></select>
+                            <span>Yak/Söndür</span>
+                            <button class="run-btn" onclick="toggleBlink()"><i class="fas fa-power-off"></i></button>
                         </div>
-
                     </div>
 
                     <div class="console-wrapper">
-                        <div class="console-header">
-                            <span><i class="fas fa-terminal"></i> Seri Port Konsolu</span>
-                            <span style="font-size:0.7rem; opacity:0.7;">115200 Baud</span>
-                        </div>
+                        <div class="console-header"><span><i class="fas fa-terminal"></i> Seri Port Konsolu</span><span style="font-size:0.7rem; opacity:0.7;">115200 Baud</span></div>
                         <div id="serialConsole" class="serial-console">
-                            > Sistem hazır.<br>
-                            > Lütfen yukarıdan "Bağlan" butonuna basın.<br>
-                            > ...
+                            > Sistem hazır.<br>> Firmware yüklü değilse önce "Yükle" diyin.<br>> Ardından "Bağlan" diyerek blokları kullanın.
                         </div>
                     </div>
 
@@ -187,10 +155,6 @@
         </section>
 
     </main>
-
     <script src="script.js"></script>
 </body>
 </html>
-
-
-
