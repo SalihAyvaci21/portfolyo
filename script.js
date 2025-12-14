@@ -4,7 +4,7 @@
 let compiledHexCode = null; // Derlenen kod
 let serialPort = null;      // Açık port
 let serialWriter = null;    // Veri gönderme aracı
-// blinkInterval global değişkeni kaldırıldı
+let blinkInterval = null;   // Blink zamanlayıcısı
 
 // ==========================================
 // 1. NAVİGASYON VE SAYFA GEÇİŞLERİ
@@ -14,10 +14,7 @@ function showSection(id, btn) {
     document.getElementById(id).classList.add('active');
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    // Not: Artık "if (id !== 'games') stopCurrentGame();" gibi kontrolleri de kaldırdık, 
-    // ancak oyun fonksiyonlarının geri kalanı aşağıda olduğu için şimdilik tutuyorum.
-    // Eğer portfolyo sitesinde oynamak istediğiniz asıl kod buysa.
-    if (id !== 'games') stopCurrentGame(); 
+    if (id !== 'games') stopCurrentGame();
 }
 
 // ==========================================
@@ -44,7 +41,7 @@ async function fetchGithubRepos() {
 window.onload = fetchGithubRepos;
 
 // ==========================================
-// 3. IOT: DERLEME (Backend) - ESKİ URL
+// 3. IOT: DERLEME (Backend)
 // ==========================================
 async function compileCode() {
     const editorVal = document.getElementById('cppEditor').value;
@@ -55,7 +52,6 @@ async function compileCode() {
     statusLbl.style.color = "#40c4ff";
 
     try {
-        // ESKİ URL'YE DÖNDÜ
         const response = await fetch('https://arduino-backend-ajkr.onrender.com/compile', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -84,7 +80,7 @@ async function compileCode() {
 }
 
 // ==========================================
-// 4. IOT: YÜKLEME (AVRgirl)
+// 4. IOT: YÜKLEME (AVRgirl) - DÜZELTİLDİ
 // ==========================================
 async function runUploader(hexDataToUse = null) {
     const hexToFlash = hexDataToUse || compiledHexCode;
@@ -94,13 +90,20 @@ async function runUploader(hexDataToUse = null) {
         return;
     }
     
-    // Seri Port bağlantı kesme mantığı kaldırıldı, çünkü eski kodda yoktu.
-    // Eğer takılma yaşarsanız, bunun manuel olarak eski kodda çözülmediğini unutmayın.
+    // Eğer bağlantı varsa önce onu tamamen kes
+    // Çünkü AVRGirl portu tek başına kullanmak ister.
+    if (serialPort) {
+        console.log("Mevcut bağlantı yükleme için kesiliyor...");
+        await disconnectSerial(true); // true = UI güncelleme yapmadan sessizce kes
+    }
 
     const statusLbl = document.getElementById('statusLabelNew') || document.getElementById('statusBadge');
     if(statusLbl) statusLbl.innerText = "Port Seçiliyor...";
 
     try {
+        // DİKKAT: Burada navigator.serial.requestPort() KULLANMIYORUZ.
+        // AVRGirl kütüphanesi flash() fonksiyonu içinde kendi port seçim ekranını açacak.
+        // Böylece 2 kere sorma sorunu çözülür.
         
         const blob = new Blob([hexToFlash], { type: 'application/octet-stream' });
         const reader = new FileReader();
@@ -184,6 +187,7 @@ async function connectSerial() {
         return;
     }
 
+    // Eğer zaten bağlıysa tekrar bağlanmaya çalışma
     if (serialPort && serialPort.readable) {
         alert("Zaten bağlı!");
         return;
@@ -197,7 +201,7 @@ async function connectSerial() {
         const writableStreamClosed = textEncoder.readable.pipeTo(serialPort.writable);
         serialWriter = textEncoder.writable.getWriter();
 
-        // Arayüz Güncelleme
+        // Arayüz
         const badge = document.getElementById('statusBadge');
         if(badge) {
             badge.innerHTML = '<i class="fas fa-circle" style="color:#00e676; font-size:0.6rem;"></i> Bağlandı';
@@ -205,7 +209,8 @@ async function connectSerial() {
         }
         document.getElementById('serialConsole').innerHTML += "<br>> <span style='color:#0f0'>Bağlantı Başarılı!</span>";
 
-        // Bağlantıyı Kes butonu görünürlüğü mantığı kaldırıldı.
+        document.getElementById('btnConnect').style.display = 'none';
+        document.getElementById('btnDisconnect').style.display = 'inline-flex';
 
     } catch (err) {
         console.error(err);
@@ -213,7 +218,39 @@ async function connectSerial() {
     }
 }
 
-// disconnectSerial fonksiyonu orijinal kodda yoktu, bu nedenle kaldırıldı.
+// Sessiz mod eklendi: Yükleme öncesi otomatik kapatmada uyarı vermesin diye
+async function disconnectSerial(silent = false) {
+    if(blinkInterval) {
+        clearInterval(blinkInterval);
+        blinkInterval = null;
+    }
+
+    try {
+        if (serialWriter) {
+            await serialWriter.releaseLock();
+            serialWriter = null;
+        }
+        if (serialPort) {
+            await serialPort.close();
+            serialPort = null;
+        }
+    } catch(e) {
+        console.log("Port kapatma hatası (önemsiz):", e);
+    }
+
+    if(!silent) {
+        const badge = document.getElementById('statusBadge');
+        if(badge) {
+            badge.innerHTML = '<i class="fas fa-circle" style="font-size:0.6rem;"></i> Bağlantı Yok';
+            badge.style.color = "#aaa";
+        }
+        
+        document.getElementById('serialConsole').innerHTML += "<br>> <span style='color:orange'>Bağlantı Kesildi.</span>";
+    
+        document.getElementById('btnConnect').style.display = 'inline-flex';
+        document.getElementById('btnDisconnect').style.display = 'none';
+    }
+}
 
 async function runBlock(command) {
     if (!serialWriter) {
@@ -222,7 +259,10 @@ async function runBlock(command) {
     }
 
     try {
-        // BLINK mantığı kaldırıldı
+        if(blinkInterval) {
+            clearInterval(blinkInterval);
+            blinkInterval = null;
+        }
 
         if (command === 'ON') {
             await serialWriter.write("1");
@@ -232,15 +272,24 @@ async function runBlock(command) {
             await serialWriter.write("0");
             document.getElementById('serialConsole').innerHTML += `<br>> LED SÖNDÜRÜLDÜ (0)`;
         }
-        // BLINK komutu kaldırıldı
-
+        else if (command === 'BLINK') {
+            document.getElementById('serialConsole').innerHTML += `<br>> BLINK BAŞLATILDI...`;
+            let toggle = false;
+            blinkInterval = setInterval(async () => {
+                if(!serialWriter) { clearInterval(blinkInterval); return; }
+                toggle = !toggle;
+                try {
+                    await serialWriter.write(toggle ? "1" : "0");
+                } catch(e) { clearInterval(blinkInterval); }
+            }, 500); 
+        }
     } catch (err) {
         alert("Gönderme Hatası: " + err);
     }
 }
 
 // ==========================================
-// 7. OYUNLAR (Eski Hali - Kısmen Eksik)
+// 7. OYUNLAR
 // ==========================================
 let canvas = document.getElementById('gameCanvas');
 let ctx = canvas ? canvas.getContext('2d') : null;
@@ -334,7 +383,7 @@ function initMaze() {
     }
     gameInterval = setInterval(() => {
         if (Math.random() > 0.5) {
-            let m = [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }].filter(d => map[g.y + d.y] && map[g.y + d.y][g.x + d.x] != 1);
+            let m = [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }].filter(d => map[g.y + d.y][g.x + d.x] != 1);
             if (m.length) { let nm = m[Math.floor(Math.random() * m.length)]; g.x += nm.x; g.y += nm.y; }
         }
         if (p.x == g.x && p.y == g.y) { score = 0; p = { x: 1, y: 1 }; g = { x: 8, y: 5 }; alert("Yakaladın!"); } draw();
@@ -343,7 +392,7 @@ function initMaze() {
         if (currentGame !== 'maze') return;
         let nx = p.x, ny = p.y;
         if (e.keyCode == 37) nx--; if (e.keyCode == 39) nx++; if (e.keyCode == 38) ny--; if (e.keyCode == 40) ny++;
-        if (map[ny] && map[ny][nx] != 1) { p.x = nx; p.y = ny; if (map[ny][nx] == 0) { score += 10; map[ny][nx] = 2; document.getElementById('scoreBoard').innerText = "SKOR: " + score; } } draw();
+        if (map[ny][nx] != 1) { p.x = nx; p.y = ny; if (map[ny][nx] == 0) { score += 10; map[ny][nx] = 2; document.getElementById('scoreBoard').innerText = "SKOR: " + score; } } draw();
         if ([37, 38, 39, 40].includes(e.keyCode)) e.preventDefault();
     };
     draw();
