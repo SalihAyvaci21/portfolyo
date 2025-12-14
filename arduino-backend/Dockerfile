@@ -1,7 +1,7 @@
 # 1. Aşama: Gerekli araçları kurmak için temel imaj
 FROM node:18-slim as builder
 
-# Arduino CLI'ı indirmek için bağımlılıkları yükle
+# Gerekli bağımlılıkları yükle
 RUN apt-get update && \
     apt-get install -y wget curl unzip libstdc++6 && \
     rm -rf /var/lib/apt/lists/*
@@ -15,19 +15,28 @@ RUN wget ${ARDUINO_CLI_URL} -O /tmp/arduino-cli.tar.gz && \
     rm /tmp/arduino-cli.tar.gz
 
 # ==================================================
-# >>> GEREKLİ ARDUINO CLI KOMUTLARI BURADA ÇALIŞIR <<<
+# CLI Konfigürasyonu (root kullanıcısının varsayılan dizini)
 # ==================================================
-RUN arduino-cli config init
-RUN arduino-cli core update-index
-RUN arduino-cli core install arduino:avr
+# ARDUINO_USER_DIR'ı belirterek dosyaların nerede olduğunu netleştiriyoruz
+ENV ARDUINO_USER_DIR=/usr/share/.arduino15 
+ENV ARDUINO_CLI_HOME=/usr/share/.arduino15 
+
+RUN mkdir -p ${ARDUINO_USER_DIR}
+RUN arduino-cli config init --config-file ${ARDUINO_USER_DIR}/arduino-cli.yaml
+
+# Çekirdek Kurulumu
+RUN arduino-cli core update-index --config-file ${ARDUINO_USER_DIR}/arduino-cli.yaml
+RUN arduino-cli core install arduino:avr --config-file ${ARDUINO_USER_DIR}/arduino-cli.yaml
 # ==================================================
 
-# 2. Aşama: Uygulama kodunu ekle ve Node.js sunucusunu çalıştır
+# 2. Aşama: Uygulama kodunu ekle
 FROM node:18-slim
 
-# Önceki aşamadan Arduino CLI ve core dosyalarını kopyala
+# Önceki aşamadan CLI ve core dosyalarını KESİN YOLDAN kopyala
+ENV ARDUINO_USER_DIR=/usr/share/.arduino15
 COPY --from=builder /usr/bin/arduino-cli /usr/bin/arduino-cli
-COPY --from=builder /root/.arduino15 /root/.arduino15
+# Düzgün kurulmuş dosyaları kopyala
+COPY --from=builder ${ARDUINO_USER_DIR} ${ARDUINO_USER_DIR} 
 
 # Uygulama kodunu kopyala ve başlat
 WORKDIR /usr/src/app
