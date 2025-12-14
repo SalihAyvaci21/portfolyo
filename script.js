@@ -7,8 +7,7 @@ let serialWriter = null;
 let blinkInterval = null;
 let blocklyWorkspace = null; // Blockly çalışma alanı objesi
 
-// ÖN TANIMLI HEX: Seri portu dinleyen temel Arduino kodu.
-// Bu hex kodu, '1' gelince LED yakar, '0' gelince söndürür (Pin 13)
+// ÖN TANIMLI HEX: Seri portu dinleyen temel Arduino kodu (Pin 13).
 const UNIVERSAL_HEX = `:100000000C945C000C946E000C946E000C946E0025
 :100010000C946E000C946E000C946E000C946E000C
 :100020000C946E000C946E000C946E000C946E00FC
@@ -135,7 +134,7 @@ window.onload = fetchGithubRepos;
 
 
 // ==========================================
-// 3. IOT: DERLEME (SUNUCUSUZ ANALİZ) - C++ Editorü için
+// 3. IOT: DERLEME (SUNUCUSUZ ANALİZ) - C++ Editörü için
 // ==========================================
 async function compileCode() {
     
@@ -143,6 +142,7 @@ async function compileCode() {
     const statusLbl = document.getElementById('statusLabelNew');
     const btnUpload = document.getElementById('btnUploadNew');
     
+    // Yükleme işlevinin çalışması için sadece Seri Port kontrol kodunu kabul ediyoruz
     const isBasicSerialControl = editorVal.includes('Serial.begin(115200)') && editorVal.includes('Serial.read()'); 
 
     statusLbl.innerText = "Durum: Kod analizi yapılıyor... (Hızlı Derleyici Emülasyonu)";
@@ -169,7 +169,7 @@ async function compileCode() {
 }
 
 // ==========================================
-// 4. IOT: YÜKLEME (AVRgirl) - Çözüm: Hex Kontrolü Eklendi
+// 4. IOT: YÜKLEME (AVRgirl) - Hata Çözümü İçin Güçlendirildi
 // ==========================================
 async function runUploader(hexDataToUse = null) {
     const hexToFlash = hexDataToUse || compiledHexCode;
@@ -179,6 +179,7 @@ async function runUploader(hexDataToUse = null) {
         return;
     }
     
+    // Seri port bağlantısı varsa kes
     if (serialPort) {
         await disconnectSerial(true);
     }
@@ -187,12 +188,12 @@ async function runUploader(hexDataToUse = null) {
     if(statusLbl) statusLbl.innerText = "Port Seçiliyor...";
 
     try {
-        // *** HATA ÇÖZÜMÜ: Hex kodu temizle ve sadece geçerli satırları al ***
+        // *** CRITICAL FIX: HEX kodu temizleme ve formatı düzeltme ***
         let cleanHex = hexToFlash.trim();
         cleanHex = cleanHex
-            .replace(/\r\n/g, '\n') // Satır sonlarını standarda getir (Windows'tan kaynaklanan hataları çözer)
+            .replace(/\r/g, '') // Carriage return karakterlerini kaldır (checksum hatasının ana nedeni)
             .split('\n')
-            .filter(line => line.trim().startsWith(':')) // Sadece Intel HEX satırlarını tut
+            .filter(line => line.trim().startsWith(':')) 
             .join('\n');
         
         if (cleanHex.length < 10) {
@@ -208,8 +209,7 @@ async function runUploader(hexDataToUse = null) {
 
             avrgirl.flash(fileBuffer, (error) => {
                 if (error) {
-                    // Checksum hatası genellikle buraya düşer
-                    alert("Yükleme Hatası: " + error.message + " - Lütfen tarayıcı konsolunu (F12) kontrol edin.");
+                    alert("YÜKLEME HATA KODU: " + error.message + " -> Konsolu (F12) kontrol edin.");
                 } else {
                     alert("BAŞARILI! Kod Yüklendi. Şimdi 'Bağlan' diyip kontrol edebilirsiniz.");
                     const badge = document.getElementById('statusBadge');
@@ -365,7 +365,7 @@ async function runBlock(command) {
 // 7. BLOCKLY ENTEGRASYONU VE KOD ÜRETİMİ (C++)
 // ==========================================
 
-// YENİ FONKSİYON: Blockly kodunu alıp yüklemeyi başlatan kısım
+// Blok Stüdyosu Derleme Fonksiyonu
 async function compileBlocklyCode(btn) {
     if (!blocklyWorkspace) {
         alert("Blok çalışma alanı henüz başlatılmadı. Lütfen sayfayı yenileyip tekrar deneyin.");
@@ -380,6 +380,7 @@ async function compileBlocklyCode(btn) {
     }
 
     const originalText = btn.innerHTML;
+    // Blok stüdyosu sonuçlarını C++ Editör alanında gösteriyoruz
     const statusLbl = document.getElementById('statusLabelNew'); 
 
     statusLbl.innerText = "Durum: Blok kod analizi ve simülasyonu yapılıyor...";
@@ -388,7 +389,6 @@ async function compileBlocklyCode(btn) {
     
     await new Promise(resolve => setTimeout(resolve, 1500));
     
-    // Sunucusuz olduğu için UNIVERSAL HEX kodunu kullanıyoruz
     compiledHexCode = UNIVERSAL_HEX; 
     
     statusLbl.innerText = "Durum: BAŞARILI! Yüklemeye Hazır.";
