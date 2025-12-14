@@ -110,6 +110,18 @@
                         <button id="btnConnect" class="serial-btn connect" onclick="connectSerial()">
                             <i class="fas fa-plug"></i> Bağlan
                         </button>
+                        <div class="header-controls">
+    <button class="serial-btn" style="background:#444; color:white;" onclick="downloadFirmware()">
+        <i class="fas fa-download"></i> Kodu İndir
+    </button>
+
+    <button id="btnConnect" class="serial-btn connect" onclick="connectSerial()">
+        <i class="fas fa-plug"></i> Bağlan
+    </button>
+    <button id="btnDisconnect" class="serial-btn off" onclick="disconnectSerial()" style="display:none; background:#ff0055; color:white;">
+        <i class="fas fa-power-off"></i> Kes
+    </button>
+</div>
                         <button id="btnDisconnect" class="serial-btn off" onclick="disconnectSerial()" style="display:none; background:#ff0055; color:white;">
                             <i class="fas fa-power-off"></i> Kes
                         </button>
@@ -179,5 +191,6 @@
     <script src="script.js"></script>
 </body>
 </html>
+
 
 
