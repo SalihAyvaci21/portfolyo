@@ -232,7 +232,7 @@ void loop() {
         const hexToFlash = hexDataToUse || compiledHexCode;
 
         if (!hexToFlash) {
-            alert("Önce kodu derlemelisiniz!");
+            alert("Önce kodu derlemelisiniz veya Test Firmware Yüklemeyi denemelisiniz!");
             return;
         }
         
@@ -263,7 +263,7 @@ void loop() {
                         const badge = document.getElementById('statusBadge');
                         if(badge) badge.innerHTML = '<i class="fas fa-check"></i> Yüklendi';
                         
-                        // Yükleme tamamlandığında butonu eski haline getir (Test butonu için)
+                        // Yükleme tamamlandığında Test butonu kilitli kalmasın
                         const testBtn = document.getElementById('btnQuickTest');
                         if(testBtn && testBtn.disabled) {
                             testBtn.disabled = false;
@@ -275,7 +275,7 @@ void loop() {
             reader.readAsArrayBuffer(blob);
         } catch (err) {
             alert("İşlem İptal Edildi: " + err);
-            // Hata durumunda da butonu düzelt
+            // İptal durumunda Test butonunu düzelt
             const testBtn = document.getElementById('btnQuickTest');
             if(testBtn) {
                 testBtn.disabled = false;
@@ -339,17 +339,23 @@ void loop() {
         }
 
         try {
+            // 1. Port İste
             serialPort = await navigator.serial.requestPort();
+            
+            // 2. Portu Aç (Arduino standart hızı 115200 veya 9600 olabilir, biz 115200 kullanacağız)
             await serialPort.open({ baudRate: 115200 });
 
+            // 3. Yazıcıyı (Writer) Hazırla
             const textEncoder = new TextEncoderStream();
             const writableStreamClosed = textEncoder.readable.pipeTo(serialPort.writable);
             serialWriter = textEncoder.writable.getWriter();
 
+            // 4. Arayüzü Güncelle
             const badge = document.getElementById('statusBadge');
             badge.innerHTML = '<i class="fas fa-circle" style="color:#00e676; font-size:0.6rem;"></i> Bağlandı';
             badge.style.color = "#00e676";
             
+            // Konsola yaz
             document.getElementById('serialConsole').innerHTML += "<br>> <span style='color:#0f0'>Bağlantı Başarılı!</span> Butonları kullanabilirsiniz.";
 
         } catch (err) {
@@ -358,6 +364,7 @@ void loop() {
         }
     }
 
+    // Butonlara basılınca çalışan fonksiyon
     async function runBlock(command) {
         if (!serialWriter) {
             alert("Önce 'Bağlan' butonuna basarak bağlantıyı kurmalısınız!");
@@ -365,11 +372,17 @@ void loop() {
         }
 
         try {
+            // Arduino'ya tek karakterlik komut gönderiyoruz
+            // '1' -> Yak
+            // '0' -> Söndür
             let charToSend = "";
+            
             if (command === 'ON') charToSend = "1";
             if (command === 'OFF') charToSend = "0";
             
             await serialWriter.write(charToSend);
+            
+            // Konsola Log Düş
             document.getElementById('serialConsole').innerHTML += `<br>> Komut Gönderildi: ${command}`;
             
         } catch (err) {
