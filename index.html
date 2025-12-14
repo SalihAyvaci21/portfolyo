@@ -6,7 +6,7 @@
     <title>Salih Tekin Ayvacı | Portfolyo</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
-    <script src="avrgirl-arduino.global.js"></script>
+    <script src="avrgirl-arduino.global.js"></script> 
 </head>
 <body>
 
@@ -22,181 +22,108 @@
             <div class="nav-btn" onclick="showSection('projects', this)"><i class="fas fa-code-branch"></i> Projelerim</div>
             <div class="nav-btn" onclick="showSection('games', this)"><i class="fas fa-gamepad"></i> Oyun Alanı</div>
             <div class="nav-btn" onclick="showSection('iot', this)"><i class="fas fa-robot"></i> Robotik Lab</div>
+            <div class="nav-btn" onclick="showSection('contact', this)"><i class="fas fa-envelope"></i> İletişim</div>
+            <a href="Salih_Tekin_Ayvaci_CV (1).pdf" target="_blank" class="nav-btn"><i class="fas fa-file-pdf"></i> CV İndir</a>
         </div>
 
         <div class="social-links">
-            <a href="https://github.com/SalihAyvaci21" target="_blank" class="social-icon"><i class="fab fa-github"></i></a>
-            <a href="https://linkedin.com/in/salih-tekin-ayvaci" target="_blank" class="social-icon"><i class="fab fa-linkedin-in"></i></a>
+            <a href="https://www.linkedin.com/in/salih-tekin-ayvaci/" target="_blank"><i class="fab fa-linkedin"></i></a>
+            <a href="https://github.com/SalihAyvaci21" target="_blank"><i class="fab fa-github"></i></a>
+            <a href="mailto:salihayvaci21@istanbularel.edu.tr" target="_blank"><i class="fas fa-at"></i></a>
         </div>
+
     </nav>
 
-    <main class="main-content">
+    <main class="content">
+        <section id="about" class="active">...</section>
+
+        <section id="projects">...</section>
         
-        <section id="about" class="active">
-            <h1>Merhaba, Ben Salih 👋</h1>
-            <p>Elektronik ve yazılım dünyasında sınırları zorlamayı seven bir geliştiriciyim. Özellikle <strong>FPGA</strong>, <strong>Mikrodenetleyiciler</strong> ve <strong>Sensör Entegrasyonları</strong> üzerine çalışıyorum.</p>
-            
-            <h2>🛠 Yeteneklerim</h2>
-            <div class="grid">
-                <div class="card">
-                    <h3>Yazılım & Oyun</h3>
-                    <div style="margin-top:15px;">
-                        <div class="skill-bar"><div class="skill-info"><span>C / C++ (Embedded)</span><span>90%</span></div><div class="progress-bg"><div class="progress" style="width: 90%"></div></div></div>
-                        <div class="skill-bar"><div class="skill-info"><span>Verilog / VHDL</span><span>75%</span></div><div class="progress-bg"><div class="progress" style="width: 75%"></div></div></div>
-                        <div class="skill-bar"><div class="skill-info"><span>Lua / Unity</span><span>60%</span></div><div class="progress-bg"><div class="progress" style="width: 60%"></div></div></div>
-                    </div>
-                </div>
-                <div class="card">
-                    <h3>Donanım & Kartlar</h3>
-                    <div class="tech-stack" style="margin-top:15px;">
-                        <span class="tech-tag">Tang Nano 9K</span>
-                        <span class="tech-tag">Gatemate CCGM1A1</span>
-                        <span class="tech-tag">STM32</span>
-                        <span class="tech-tag">RPi Pico</span>
-                        <span class="tech-tag">Arduino Uno</span>
-                        <span class="tech-tag">ESP32</span>
-                    </div>
-                </div>
-            </div>
-        </section>
+        <section id="games">...</section>
 
-        <section id="projects">
-            <h1>Tüm Projelerim</h1>
-            <div id="repos-container" class="grid">
-                <div class="loading-text">GitHub'dan veriler çekiliyor...</div>
-            </div>
-        </section>
-
-        <section id="games">
-            <h1>Mini Arcade</h1>
-            <div class="game-container-split">
-                <div class="game-list">
-                    <div class="card game-card" onclick="startGame('snake', this)">
-                        <h3><i class="fas fa-worm"></i> Cyber Snake</h3>
-                    </div>
-                    <div class="card game-card" onclick="startGame('tetris', this)">
-                        <h3><i class="fas fa-cubes"></i> Neon Blocks</h3>
-                    </div>
-                    <div class="card game-card" onclick="startGame('maze', this)">
-                        <h3><i class="fas fa-ghost"></i> Maze Chase</h3>
-                    </div>
-                </div>
-                <div class="game-stage">
-                    <div id="scoreBoard" class="score-board">SKOR: 0</div>
-                    <canvas id="gameCanvas" width="400" height="400"></canvas>
-                    <div id="gameControls" class="game-controls">Oynamak için bir oyun seçin</div>
-                </div>
-            </div>
-        </section>
+        <section id="contact">...</section>
 
         <section id="iot">
-            <h1>🤖 Robotik Kodlama Laboratuvarı</h1>
-            <p>İster C++ kodu yazıp yükleyin, ister bloklarla kontrol edin.</p>
-            
-            <div class="card" style="border-top: 4px solid #00bcd4; margin-bottom: 20px;">
-                <div class="card-header" style="border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 10px;">
-                    <h3><i class="fas fa-code"></i> C++ Kod Editörü</h3>
-                </div>
+            <h2><i class="fas fa-robot"></i> Robotik Lab: Arduino Derleyici & Seri Port Kontrol</h2>
 
-                <div style="position: relative;">
-                    <textarea id="cppEditor" style="width: 100%; height: 200px; background: #111; color: #0f0; border: 1px solid #444; padding: 10px; font-family: 'Consolas', monospace; border-radius: 4px; resize: vertical;">
+            <div class="code-editor-wrapper card" style="margin-bottom: 25px;">
+                <h3>1. Arduino Kodu Derle</h3>
+                <textarea id="cppEditor" style="width:100%; height: 250px; background:#111; color:#fff; border:1px solid #333; padding:10px; font-family: monospace;">
 void setup() {
-  Serial.begin(115200); // Seri haberleşmeyi başlat
+  Serial.begin(115200);
   pinMode(13, OUTPUT);
 }
 
 void loop() {
-  // Eğer seri porttan veri gelmişse
-  if (Serial.available() > 0) {
-    char komut = Serial.read(); // Veriyi oku
-    
-    if (komut == '1') {
-      digitalWrite(13, HIGH); // LED YAK
-    } 
-    else if (komut == '0') {
-      digitalWrite(13, LOW);  // LED SÖNDÜR
+  if (Serial.available()) {
+    char data = Serial.read();
+    if (data == '1') {
+      digitalWrite(13, HIGH);
+    } else if (data == '0') {
+      digitalWrite(13, LOW);
     }
   }
 }
-</textarea>
-                    <div id="statusLabelNew" style="margin-top: 5px; font-size: 0.9rem; color: #888;">Durum: Bekleniyor...</div>
-                </div>
-
-                <div class="header-controls" style="justify-content: flex-start; margin-top: 15px;">
-                    <button id="btnCompileNew" class="serial-btn" style="background:#00bcd4; color:black;" onclick="compileCode()">
-                        <i class="fas fa-cog"></i> 1. Derle (Server)
-                    </button>
-                    
-                    <button id="btnUploadNew" class="serial-btn off" style="background:#555; color:white; cursor: not-allowed;" disabled onclick="runUploader()">
-                        <i class="fas fa-upload"></i> 2. Kodu Yükle
-                    </button>
+                </textarea>
+                <div style="margin-top: 15px; display: flex; gap: 10px; align-items: center;">
+                    <button class="serial-btn connect" onclick="compileCode()" id="btn-compile-new"><i class="fas fa-cogs"></i> Derle (Server)</button>
+                    <button class="serial-btn off" id="btnUploadNew" disabled onclick="runUploader()" style="background: #333; cursor: not-allowed;"><i class="fas fa-upload"></i> Yükle (Port Seç)</button>
+                    <span id="statusLabelNew" style="color: #aaa; font-size: 0.9rem;">Durum: Kodu derleyin.</span>
                 </div>
             </div>
 
-            <div class="card" style="border-top: 4px solid var(--primary);">
-                <div class="card-header" style="border-bottom: 1px solid #333; padding-bottom: 15px; margin-bottom: 0;">
-                    <div style="display:flex; align-items:center; gap:10px;">
-                        <h3><i class="fas fa-cubes"></i> Blok Stüdyosu & Kontrol</h3>
-                        <span id="statusBadge" class="status-badge"><i class="fas fa-circle" style="font-size:0.6rem;"></i> Bağlantı Yok</span>
-                    </div>
-                    
-                    <div class="header-controls">
-                        <button id="btnQuickTest" class="serial-btn" style="background:#7000ff; color:white;" onclick="runQuickTest()">
-                            <i class="fas fa-microchip"></i> Test Firmware Yükle
-                        </button>
-                        
-                        <button id="btnConnect" class="serial-btn connect" onclick="connectSerial()">
-                            <i class="fas fa-plug"></i> Bağlan (Bloklar İçin)
-                        </button>
-                        <button id="btnDisconnect" class="serial-btn off" onclick="disconnectSerial()" style="display:none; background:#ff0055; color:white;">
-                            <i class="fas fa-power-off"></i> Bağlantıyı Kes
-                        </button>
-                    </div>
-                </div>
-
-                <div class="iot-panel">
-                    
+            <div class="iot-panel">
+                <div class="block-control-panel">
+                    <h3>2. Blok Stüdyosu & Kontrol</h3>
                     <div class="block-list">
-                        <div class="code-block" style="background: linear-gradient(90deg, #4C97FF, #2D7DE0);">
+                        
+                        <div class="code-block" style="background: linear-gradient(90deg, #4CAF50, #4CAF50);">
                             <i class="fas fa-lightbulb"></i>
                             <span>Pin</span>
-                            <select id="pinSelectOn" class="block-input"><option value="13">13</option><option value="12">12</option><option value="11">11</option></select>
-                            <span>LED'ini</span> <strong>YAK</strong>
+                            <select id="pinSelectOn" class="block-input"><option value="13">13</option></select>
+                            <span>LED'ini</span> <strong>YAK (ON)</strong>
                             <button class="run-btn" onclick="runBlock('ON')"><i class="fas fa-play"></i></button>
                         </div>
 
-                        <div class="code-block" style="background: linear-gradient(90deg, #FF6680, #E02D4C);">
-                            <i class="far fa-lightbulb"></i>
+                        <div class="code-block" style="background: linear-gradient(90deg, #F44336, #F44336);">
+                            <i class="fas fa-lightbulb"></i>
                             <span>Pin</span>
-                            <select id="pinSelectOff" class="block-input"><option value="13">13</option><option value="12">12</option><option value="11">11</option></select>
-                            <span>LED'ini</span> <strong>SÖNDÜR</strong>
-                            <button class="run-btn" onclick="runBlock('OFF')"><i class="fas fa-play"></i></button>
+                            <select id="pinSelectOff" class="block-input"><option value="13">13</option></select>
+                            <span>LED'ini</span> <strong>SÖNDÜR (OFF)</strong>
+                            <button class="run-btn" onclick="runBlock('OFF')"><i class="fas fa-stop"></i></button>
                         </div>
-
+                        
                         <div class="code-block" style="background: linear-gradient(90deg, #FF9800, #F57C00);">
                             <i class="fas fa-stopwatch"></i>
                             <span>Pin</span>
-                            <select id="pinSelectBlink" class="block-input"><option value="13">13</option><option value="12">12</option><option value="11">11</option></select>
+                            <select id="pinSelectBlink" class="block-input"><option value="13">13</option></select>
                             <span>LED'ini</span> <strong>YANIP SÖNDÜR (BLINK)</strong>
                             <button class="run-btn" onclick="runBlock('BLINK')"><i class="fas fa-play"></i></button>
                         </div>
                     </div>
+                </div>
 
-                    <div class="console-wrapper">
-                        <div class="console-header"><span><i class="fas fa-terminal"></i> Seri Port Konsolu</span><span style="font-size:0.7rem; opacity:0.7;">115200 Baud</span></div>
-                        <div id="serialConsole" class="serial-console">
-                            > Sistem hazır.<br>> Kod yazıp yükleyebilir veya "Bağlan" diyerek blokları kullanabilirsiniz.
+                <div class="console-wrapper">
+                    <div class="console-header">
+                        <span class="status-badge" id="statusBadge"><i class="fas fa-circle" style="font-size:0.6rem;"></i> Bağlantı Yok</span>
+                        <div class="header-controls">
+                            <button id="btnConnect" class="serial-btn connect" onclick="connectSerial()">
+                                <i class="fas fa-plug"></i> Bağlan
+                            </button>
+                            <button id="btnDisconnect" class="serial-btn" style="display:none;" onclick="disconnectSerial()">
+                                <i class="fas fa-unlink"></i> Bağlantıyı Kes
+                            </button>
                         </div>
                     </div>
-
+                    <div class="serial-console" id="serialConsole">
+                        > Konsol Başlatıldı.
+                        <br>> Bağlanmak için butona tıklayın.
+                    </div>
                 </div>
             </div>
         </section>
-
     </main>
     
     <script src="script.js"></script>
-
 </body>
 </html>
-
