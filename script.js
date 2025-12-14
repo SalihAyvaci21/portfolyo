@@ -7,11 +7,10 @@ let serialWriter = null;    // Veri gönderme aracı
 let blinkInterval = null;   // Blink zamanlayıcısı
 
 // ==========================================
-// 1. NAVİGASYON VE SAYFA GEÇİŞLERİ
+// 1. NAVİGASYON VE SAYFA GEÇİŞLERİ (Düzeltildi)
 // ==========================================
 function showSection(id, btn) {
     document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
-    // Not: Tüm bölümlerin aktif/deaktif edilmesini sağlayan temel yapı.
     document.getElementById(id).classList.add('active');
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     // Eğer bir link değilse (örneğin CV linki), butona active class'ı eklenir.
@@ -19,7 +18,8 @@ function showSection(id, btn) {
         btn.classList.add('active');
     }
     
-    if (id !== 'games') stopCurrentGame();
+    // Oyun bölümünden çıkınca oyunu durdur
+    if (id !== 'games') stopCurrentGame(); 
 }
 
 // ==========================================
@@ -53,10 +53,8 @@ async function compileCode() {
     const statusLbl = document.getElementById('statusLabelNew');
     const btnUpload = document.getElementById('btnUploadNew');
 
-    // !!! BURAYI SİZİN GERÇEK ARDUINO BACKEND SUNUCU ADRESİNİZ İLE DEĞİŞTİRİN !!!
-    // Eğer aynı Render projesi içinde ayrı bir Web Service olarak kurduysanız, o Web Service'in URL'si olmalı.
-    const ARDUINO_BACKEND_URL = 'https://arduino-backend-ajkr.onrender.com'; // Örn.
-    // LÜTFEN Render panelinizden Arduino CLI server'ınızın tam URL'sini buraya yazınız.
+    // !!! BU ADRESİ SİZİN GERÇEK ARDUINO CLI BACKEND URL'NİZ İLE DEĞİŞTİRİN !!!
+    const ARDUINO_BACKEND_URL = 'https://arduino-cli-service.onrender.com'; // Örnek URL
 
     statusLbl.innerText = "Durum: Sunucuda derleniyor... (Bekleyin)";
     statusLbl.style.color = "#40c4ff";
@@ -69,12 +67,13 @@ async function compileCode() {
         });
 
         if (!response.ok) {
-            // Hata detayını yakalamak için
             let errorDetail = "Bilinmeyen sunucu hatası.";
             try {
+                 const errorBody = await response.json();
+                 errorDetail = errorBody.details || errorBody.error || errorDetail;
+            } catch (e) {
                  errorDetail = await response.text();
-            } catch (e) { /* Yoksay */ }
-            
+            }
             throw new Error(`Sunucu Hatası (${response.status}): ${errorDetail.substring(0, 50)}...`);
         }
         
@@ -97,6 +96,7 @@ async function compileCode() {
         statusLbl.style.color = "#ff5252";
     }
 }
+
 // ==========================================
 // 4. IOT: YÜKLEME (AVRgirl)
 // ==========================================
@@ -149,6 +149,10 @@ async function runUploader(hexDataToUse = null) {
         const testBtn = document.getElementById('btnQuickTest');
         if(testBtn) {
             testBtn.disabled = false;
+            btnUpload.disabled = true; // Yükleme butonunu tekrar kilitle
+            btnUpload.style.background = "#333";
+            btnUpload.style.cursor = "not-allowed";
+            btnUpload.classList.add('off');
             testBtn.innerHTML = '<i class="fas fa-microchip"></i> Test Firmware Yükle';
         }
     }
@@ -195,7 +199,7 @@ async function runQuickTest() {
 
 async function connectSerial() {
     if (!navigator.serial) {
-        alert("Tarayıcınız Seri Port desteklemiyor.");
+        alert("Tarayıcınız Seri Port desteklemiyor. Lütfen Chrome, Edge veya Opera kullanın.");
         return;
     }
 
@@ -206,9 +210,14 @@ async function connectSerial() {
 
     try {
         serialPort = await navigator.serial.requestPort();
-        await serialPort.open({ baudRate: 115200 });
+        // AVRgirl için genellikle 115200 Baudrate yeterlidir.
+        await serialPort.open({ baudRate: 115200 }); 
 
         const textEncoder = new TextEncoderStream();
+        // Seri porttan veri alma (Okuyucu oluşturulmalı)
+        // const reader = serialPort.readable.getReader();
+        
+        // Seri porta veri gönderme
         textEncoder.readable.pipeTo(serialPort.writable);
         serialWriter = textEncoder.writable.getWriter();
 
@@ -218,7 +227,10 @@ async function connectSerial() {
             badge.innerHTML = '<i class="fas fa-circle" style="color:#00e676; font-size:0.6rem;"></i> Bağlandı';
             badge.style.color = "#00e676";
         }
-        document.getElementById('serialConsole').innerHTML += "<br>> <span style='color:#0f0'>Bağlantı Başarılı!</span>";
+        const consoleEl = document.getElementById('serialConsole');
+        if (consoleEl) {
+             consoleEl.innerHTML += "<br>> <span style='color:#0f0'>Bağlantı Başarılı!</span>";
+        }
 
         // Butonların görünürlüğünü ayarla
         document.getElementById('btnConnect').style.display = 'none';
@@ -279,58 +291,71 @@ async function runBlock(command) {
             document.getElementById('serialConsole').innerHTML += "<br>> <span style='color:orange'>BLINK Durduruldu.</span>";
         }
 
+        let writeCommand = "";
+        let consoleMessage = "";
+
         if (command === 'ON') {
-            await serialWriter.write("1");
-            document.getElementById('serialConsole').innerHTML += `<br>> LED YAKILDI (1)`;
+            writeCommand = "1";
+            consoleMessage = "LED YAKILDI (1)";
         }
         else if (command === 'OFF') {
-            await serialWriter.write("0");
-            document.getElementById('serialConsole').innerHTML += `<br>> LED SÖNDÜRÜLDÜ (0)`;
+            writeCommand = "0";
+            consoleMessage = "LED SÖNDÜRÜLDÜ (0)";
         }
         else if (command === 'BLINK') {
-            document.getElementById('serialConsole').innerHTML += `<br>> BLINK BAŞLATILDI...`;
+            consoleMessage = "BLINK BAŞLATILDI...";
+            document.getElementById('serialConsole').innerHTML += `<br>> <span>${consoleMessage}</span>`;
             let toggle = false;
             blinkInterval = setInterval(async () => {
                 if(!serialWriter) { clearInterval(blinkInterval); return; }
                 toggle = !toggle;
                 try {
+                    // Blink komutu için sürekli veri gönderimi
                     await serialWriter.write(toggle ? "1" : "0");
                 } catch(e) { 
                     clearInterval(blinkInterval); 
                     blinkInterval = null;
                 }
             }, 500); 
+            return; // Blink döngüsü başladığı için buradan çık
         }
+        
+        await serialWriter.write(writeCommand);
+        document.getElementById('serialConsole').innerHTML += `<br>> <span>${consoleMessage}</span>`;
     } catch (err) {
         alert("Gönderme Hatası: " + err);
     }
 }
 
 // ==========================================
-// 7. OYUNLAR (Düzeltilmiş ve Tamamlanmış Kısım)
+// 7. OYUNLAR (Düzeltildi)
 // ==========================================
+// Canvas ve Context'i tanımla
 let canvas = document.getElementById('gameCanvas');
 let ctx = canvas ? canvas.getContext('2d') : null;
 let gameInterval, currentGame, score = 0;
 
 function stopCurrentGame() {
+    // Canvas ve Context'i tekrar kontrol et
     if(!ctx && canvas) ctx = canvas.getContext('2d');
     if(!ctx) return;
     clearInterval(gameInterval);
-    ctx.clearRect(0, 0, 400, 400);
+    // Canvas'ı temizle
+    ctx.clearRect(0, 0, 400, 400); 
     currentGame = null;
 }
 
 function startGame(t, b) {
-    // Canvas ve Context'i tekrar kontrol et
     if(!ctx) { 
         canvas = document.getElementById('gameCanvas');
         ctx = canvas ? canvas.getContext('2d') : null;
         if (!ctx) return; 
     }
     stopCurrentGame();
+    // Oyun kartının aktif görünmesini sağlar
     document.querySelectorAll('.game-card').forEach(c => c.classList.remove('active-game'));
-    if(b) b.classList.add('active-game');
+    if(b) b.classList.add('active-game'); 
+    
     score = 0;
     const sb = document.getElementById('scoreBoard');
     if(sb) sb.innerText = "SKOR: 0";
