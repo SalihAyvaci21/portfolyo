@@ -7,7 +7,7 @@ let serialWriter = null;
 let blinkInterval = null;
 let blocklyWorkspace = null; // Blockly çalışma alanı objesi
 
-// ÖN TANIMLI HEX: Seri portu dinleyen temel Arduino kodu.
+// ÖN TANIMLI HEX: Seri portu dinleyen temel Arduino kodu (Pin 13).
 const UNIVERSAL_HEX = `:100000000C945C000C946E000C946E000C946E0025
 :100010000C946E000C946E000C946E000C946E000C
 :100020000C946E000C946E000C946E000C946E00FC
@@ -148,10 +148,11 @@ async function compileCode() {
     statusLbl.innerText = "Durum: Kod analizi yapılıyor... (Hızlı Derleyici Emülasyonu)";
     statusLbl.style.color = "#40c4ff";
 
+    // Sunucusuz derleme simülasyonu
     await new Promise(resolve => setTimeout(resolve, 1500));
 
     if (!isBasicSerialControl) {
-        statusLbl.innerText = "Hata: Gömülü derleyici (demo) sadece temel Serial.read() kodunu destekler.";
+        statusLbl.innerText = "Hata: Gömülü derleyici (demo) sadece temel Serial.read() kodunu destekler. Daha karmaşık kodlar için sunucu gereklidir.";
         statusLbl.style.color = "#ff5252";
         btnUpload.disabled = true;
         btnUpload.style.background = "#555";
@@ -159,6 +160,7 @@ async function compileCode() {
         return;
     }
 
+    // HEX kodu ata
     compiledHexCode = UNIVERSAL_HEX; 
     statusLbl.innerText = "Durum: BAŞARILI! Kod yüklenebilir.";
     statusLbl.style.color = "#00e676";
