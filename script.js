@@ -80,7 +80,7 @@ async function compileCode() {
 }
 
 // ==========================================
-// 4. IOT: YÜKLEME (AVRgirl) - DÜZELTİLDİ (Tek Port Seçimi)
+// 4. IOT: YÜKLEME (AVRgirl) - DÜZELTİLDİ
 // ==========================================
 async function runUploader(hexDataToUse = null) {
     const hexToFlash = hexDataToUse || compiledHexCode;
@@ -90,18 +90,20 @@ async function runUploader(hexDataToUse = null) {
         return;
     }
     
-    // Eğer blok kontrolü için port açıksa, önce onu kapatalım.
-    // Çünkü AVRGirl kendi bağlantısını kurmak isteyecek.
+    // Eğer bağlantı varsa önce onu tamamen kes
+    // Çünkü AVRGirl portu tek başına kullanmak ister.
     if (serialPort) {
-        await disconnectSerial();
+        console.log("Mevcut bağlantı yükleme için kesiliyor...");
+        await disconnectSerial(true); // true = UI güncelleme yapmadan sessizce kes
     }
 
     const statusLbl = document.getElementById('statusLabelNew') || document.getElementById('statusBadge');
     if(statusLbl) statusLbl.innerText = "Port Seçiliyor...";
 
     try {
-        // BURADA navigator.serial.requestPort() KALDIRILDI.
-        // AVRGirl kütüphanesi flash() fonksiyonu çağrıldığında kendisi soracak.
+        // DİKKAT: Burada navigator.serial.requestPort() KULLANMIYORUZ.
+        // AVRGirl kütüphanesi flash() fonksiyonu içinde kendi port seçim ekranını açacak.
+        // Böylece 2 kere sorma sorunu çözülür.
         
         const blob = new Blob([hexToFlash], { type: 'application/octet-stream' });
         const reader = new FileReader();
@@ -116,7 +118,10 @@ async function runUploader(hexDataToUse = null) {
                 } else {
                     alert("BAŞARILI! Kod Yüklendi. Şimdi 'Bağlan' diyip kontrol edebilirsiniz.");
                     const badge = document.getElementById('statusBadge');
-                    if(badge) badge.innerHTML = '<i class="fas fa-check"></i> Yüklendi';
+                    if(badge) {
+                        badge.innerHTML = '<i class="fas fa-check"></i> Yüklendi - Bağlanmayı Bekliyor';
+                        badge.style.color = "orange";
+                    }
                     
                     const testBtn = document.getElementById('btnQuickTest');
                     if(testBtn) {
@@ -157,6 +162,8 @@ async function runQuickTest() {
         const hexText = await response.text();
 
         if(btn) btn.innerHTML = '<i class="fas fa-microchip"></i> Yükleniyor...';
+        
+        // Yükleyiciye gönder
         await runUploader(hexText);
 
     } catch (err) {
@@ -177,6 +184,12 @@ async function runQuickTest() {
 async function connectSerial() {
     if (!navigator.serial) {
         alert("Tarayıcınız Seri Port desteklemiyor.");
+        return;
+    }
+
+    // Eğer zaten bağlıysa tekrar bağlanmaya çalışma
+    if (serialPort && serialPort.readable) {
+        alert("Zaten bağlı!");
         return;
     }
 
@@ -205,10 +218,8 @@ async function connectSerial() {
     }
 }
 
-// DÜZELTİLDİ: Bağlantıyı kesin olarak kapatan fonksiyon
-async function disconnectSerial() {
-    console.log("Bağlantı kesiliyor...");
-    
+// Sessiz mod eklendi: Yükleme öncesi otomatik kapatmada uyarı vermesin diye
+async function disconnectSerial(silent = false) {
     if(blinkInterval) {
         clearInterval(blinkInterval);
         blinkInterval = null;
@@ -224,20 +235,21 @@ async function disconnectSerial() {
             serialPort = null;
         }
     } catch(e) {
-        console.log("Port kapatılırken hata (önemsiz olabilir):", e);
+        console.log("Port kapatma hatası (önemsiz):", e);
     }
 
-    // Arayüzü güncelle
-    const badge = document.getElementById('statusBadge');
-    if(badge) {
-        badge.innerHTML = '<i class="fas fa-circle" style="font-size:0.6rem;"></i> Bağlantı Yok';
-        badge.style.color = "#aaa";
-    }
+    if(!silent) {
+        const badge = document.getElementById('statusBadge');
+        if(badge) {
+            badge.innerHTML = '<i class="fas fa-circle" style="font-size:0.6rem;"></i> Bağlantı Yok';
+            badge.style.color = "#aaa";
+        }
+        
+        document.getElementById('serialConsole').innerHTML += "<br>> <span style='color:orange'>Bağlantı Kesildi.</span>";
     
-    document.getElementById('serialConsole').innerHTML += "<br>> <span style='color:orange'>Bağlantı Kesildi.</span>";
-
-    document.getElementById('btnConnect').style.display = 'inline-flex';
-    document.getElementById('btnDisconnect').style.display = 'none';
+        document.getElementById('btnConnect').style.display = 'inline-flex';
+        document.getElementById('btnDisconnect').style.display = 'none';
+    }
 }
 
 async function runBlock(command) {
@@ -277,7 +289,7 @@ async function runBlock(command) {
 }
 
 // ==========================================
-// 7. OYUNLAR (SNAKE, TETRIS, MAZE)
+// 7. OYUNLAR
 // ==========================================
 let canvas = document.getElementById('gameCanvas');
 let ctx = canvas ? canvas.getContext('2d') : null;
