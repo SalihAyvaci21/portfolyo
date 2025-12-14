@@ -91,27 +91,24 @@ function showSection(id, btn) {
     
     // Blockly çalışma alanını temizle
     if (id !== 'blocks' && blocklyWorkspace) {
-        // Blok sayfasından çıkınca kaynakları serbest bırak
         blocklyWorkspace.dispose();
         blocklyWorkspace = null;
     }
 }
 
-// YENİ: Blockly bölümünü gösteren ve başlatan fonksiyon
+// Blockly bölümünü gösteren ve başlatan fonksiyon
 function showBlocksSection(btn) {
-    // 1. Sekme değiştirilir
     showSection('blocks', btn);
     
-    // 2. Blockly'nin init fonksiyonu, tarayıcıya çizim yapması için zaman vererek çağrılır.
-    // Bu, "display: none" -> "display: block" geçişinden sonra doğru boyutlanmasını sağlar.
+    // Asenkron başlatma garantisi
     setTimeout(() => {
         if (!blocklyWorkspace) {
             initBlockly();
         } else {
-            // Blockly yeniden boyutlandırma
+            // Blockly'nin görünümü düzeltebilmesi için yeniden boyutlandır
             Blockly.svgResize(blocklyWorkspace);
         }
-    }, 100); // 100ms gecikme
+    }, 100); 
 }
 
 // ==========================================
@@ -357,7 +354,6 @@ async function runBlock(command) {
 // ==========================================
 function initBlockly() {
     if (blocklyWorkspace || typeof Blockly === 'undefined') {
-        console.warn("Blockly zaten yüklü veya kütüphane eksik.");
         return;
     }
     
@@ -386,11 +382,13 @@ function initBlockly() {
         </xml>
     `;
     
+    // Blockly başlatma: Temayı burada Dark Theme olarak ayarlıyoruz
     blocklyWorkspace = Blockly.inject('blocklyDiv', {
         toolbox: toolboxXml,
         scrollbars: true,
         trashcan: true,
         horizontalLayout: false,
+        theme: Blockly.Themes.Dark, // <<< KOYU TEMA BURADA AKTİF EDİLDİ
         zoom: {
             controls: true,
             wheel: true,
@@ -403,7 +401,6 @@ function initBlockly() {
 
     // --- ÖZEL ARDUINO BLOK TANIMLARI ---
     
-    // Pin Mode
     Blockly.Blocks['pin_mode'] = {
         init: function() {
             this.appendDummyInput()
@@ -424,7 +421,6 @@ function initBlockly() {
         return code;
     };
 
-    // Digital Write
     Blockly.Blocks['digital_write'] = {
         init: function() {
             this.appendDummyInput()
@@ -445,7 +441,6 @@ function initBlockly() {
         return code;
     };
     
-    // Pin Delay (Gecikme)
     Blockly.Blocks['pin_delay'] = {
         init: function() {
             this.appendDummyInput()
@@ -472,9 +467,7 @@ function initBlockly() {
         
         // Setup ve Loop yapısını ekleyerek tam Arduino kodu oluşturma (Çok Basitleştirilmiş)
         if(generatedCode) {
-            // Sadece PinMode'ları setup'a al
             const setupCode = generatedCode.match(/pinMode\([^;]*;\n/g)?.join('\n') || "";
-            // Geri kalanını loop'a al
             const loopCode = generatedCode.replace(/pinMode\([^;]*;\n/g, '');
 
             generatedCode = `void setup() {\n  // Başlangıç ayarları\n${setupCode}\n}\n\nvoid loop() {\n  // Sürekli çalışan kod\n${loopCode}}`;
@@ -525,12 +518,11 @@ function initBlockly() {
     </xml>`;
     Blockly.Xml.domToWorkspace(Blockly.Xml.textToDom(initialXml), blocklyWorkspace);
 
-    // İlk kodu oluştur ve göster
     updateCode({});
 }
 
-// =adan=======================================
-// 8. OYUNLAR (SNAKE, TETRIS, MAZE)
+// ==========================================
+// 8. OYUNLAR (Oyun kodları değişmediği için kısaltılmıştır)
 // ==========================================
 let canvas = document.getElementById('gameCanvas');
 let ctx = canvas ? canvas.getContext('2d') : null;
