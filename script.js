@@ -23,7 +23,7 @@ function showSection(id, btn) {
 async function fetchGithubRepos() {
     const username = 'SalihAyvaci21';
     const container = document.getElementById('repos-container');
-    const gizlenecekler = ["SalihAyvaci21", "portfolyo"];
+    const gizlenecekler = ["SalihAyvaci21", "portfolyo", "arduino-backend"];
     if (!container) return;
 
     try {
