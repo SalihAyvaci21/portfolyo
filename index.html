@@ -76,26 +76,41 @@
         </section>
 
         <section id="games">
-            <h1>Mini Arcade</h1>
-            <div class="game-container-split">
-                <div class="game-list">
-                    <div class="card game-card" onclick="startGame('snake', this)">
-                        <h3><i class="fas fa-worm"></i> Cyber Snake</h3>
-                    </div>
-                    <div class="card game-card" onclick="startGame('tetris', this)">
-                        <h3><i class="fas fa-cubes"></i> Neon Blocks</h3>
-                    </div>
-                    <div class="card game-card" onclick="startGame('maze', this)">
-                        <h3><i class="fas fa-ghost"></i> Maze Chase</h3>
-                    </div>
-                </div>
-                <div class="game-stage">
-                    <div id="scoreBoard" class="score-board">SKOR: 0</div>
-                    <canvas id="gameCanvas" width="400" height="400"></canvas>
-                    <div id="gameControls" class="game-controls">Oynamak için bir oyun seçin</div>
+    <div class="arcade-header">
+        <h1><i class="fas fa-gamepad"></i> Neon Arcade</h1>
+        <p>Retro dünyaya hoş geldin. Bir kaset seç ve oyna!</p>
+    </div>
+
+    <div class="arcade-console">
+        <div class="game-selection">
+            <div class="game-cartridge" onclick="startGame('snake', this)">
+                <i class="fas fa-worm"></i>
+                <span>Cyber Snake</span>
+            </div>
+            <div class="game-cartridge" onclick="startGame('tetris', this)">
+                <i class="fas fa-cubes"></i>
+                <span>Neon Blocks</span>
+            </div>
+            <div class="game-cartridge" onclick="startGame('maze', this)">
+                <i class="fas fa-ghost"></i>
+                <span>Maze Chase</span>
+            </div>
+        </div>
+
+        <div class="monitor-wrapper">
+            <div class="monitor-bezel">
+                <div class="screen-glare"></div> <canvas id="gameCanvas" width="400" height="400"></canvas>
+                <div class="scanlines"></div> </div>
+            
+            <div class="arcade-controls-ui">
+                <div id="scoreBoard" class="digital-score">SKOR: 0000</div>
+                <div id="gameControls" class="status-text">
+                    <i class="fas fa-arrow-up"></i> Başlamak için oyun seçin
                 </div>
             </div>
-        </section>
+        </div>
+    </div>
+</section>
 
         <section id="iot">
             <h1>🤖 Robotik Kodlama Laboratuvarı</h1>
@@ -207,3 +222,4 @@ void loop() {
 
 </body>
 </html>
+
