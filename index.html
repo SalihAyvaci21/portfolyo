@@ -75,37 +75,56 @@
             </div>
         </section>
 
-        <section id="games">
+       <section id="games">
     <div class="arcade-header">
-        <h1><i class="fas fa-gamepad"></i> Neon Arcade</h1>
-        <p>Retro dünyaya hoş geldin. Bir kaset seç ve oyna!</p>
+        <h1 class="neon-text"><i class="fas fa-gamepad"></i> NEON ARCADE</h1>
+        <p>Retro dünyaya hoş geldin. Bir kaset seç ve yuvaya yerleştir!</p>
     </div>
 
     <div class="arcade-console">
         <div class="game-selection">
-            <div class="game-cartridge" onclick="startGame('snake', this)">
-                <i class="fas fa-worm"></i>
-                <span>Cyber Snake</span>
+            <div class="game-cartridge" data-game="snake" onclick="startGame('snake', this)">
+                <div class="cartridge-top"></div>
+                <div class="cartridge-label">
+                    <i class="fas fa-worm"></i>
+                    <span>CYBER SNAKE</span>
+                </div>
             </div>
-            <div class="game-cartridge" onclick="startGame('tetris', this)">
-                <i class="fas fa-cubes"></i>
-                <span>Neon Blocks</span>
+            <div class="game-cartridge" data-game="tetris" onclick="startGame('tetris', this)">
+                <div class="cartridge-top"></div>
+                <div class="cartridge-label">
+                    <i class="fas fa-cubes"></i>
+                    <span>NEON BLOCKS</span>
+                </div>
             </div>
-            <div class="game-cartridge" onclick="startGame('maze', this)">
-                <i class="fas fa-ghost"></i>
-                <span>Maze Chase</span>
+            <div class="game-cartridge" data-game="maze" onclick="startGame('maze', this)">
+                <div class="cartridge-top"></div>
+                <div class="cartridge-label">
+                    <i class="fas fa-ghost"></i>
+                    <span>MAZE CHASE</span>
+                </div>
             </div>
         </div>
 
-        <div class="monitor-wrapper">
+        <div class="monitor-container">
             <div class="monitor-bezel">
-                <div class="screen-glare"></div> <canvas id="gameCanvas" width="400" height="400"></canvas>
-                <div class="scanlines"></div> </div>
+                <div class="monitor-screen">
+                    <div class="screen-glare"></div>
+                    <canvas id="gameCanvas" width="400" height="400"></canvas>
+                    <div class="scanlines"></div>
+                    <div id="bootScreen" class="boot-screen">
+                        <div class="insert-coin">INSERT CASSETTE</div>
+                    </div>
+                </div>
+            </div>
             
-            <div class="arcade-controls-ui">
-                <div id="scoreBoard" class="digital-score">SKOR: 0000</div>
-                <div id="gameControls" class="status-text">
-                    <i class="fas fa-arrow-up"></i> Başlamak için oyun seçin
+            <div class="arcade-dashboard">
+                <div class="digital-score-container">
+                    <span class="label">SCORE</span>
+                    <div id="scoreBoard" class="score-val">00000</div>
+                </div>
+                <div class="arcade-controls-hint">
+                    <span><i class="fas fa-arrow-up"></i> Yön Tuşları ile Oyna</span>
                 </div>
             </div>
         </div>
@@ -222,4 +241,5 @@ void loop() {
 
 </body>
 </html>
+
 
