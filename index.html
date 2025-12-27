@@ -7,6 +7,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
     <script src="avrgirl-arduino.global.js"></script>
+    <script src="https://unpkg.com/blockly/blockly.min.js"></script>
+    <script src="https://unpkg.com/blockly/msg/tr.js"></script>
 </head>
 <body>
 
@@ -21,6 +23,7 @@
             <div class="nav-btn active" onclick="showSection('about', this)"><i class="fas fa-user-astronaut"></i> Hakkımda</div>
             <div class="nav-btn" onclick="showSection('projects', this)"><i class="fas fa-code-branch"></i> Projelerim</div>
             <div class="nav-btn" onclick="showSection('games', this)"><i class="fas fa-gamepad"></i> Oyun Alanı</div>
+            <div class="nav-btn" onclick="showSection('blockcoding', this)"><i class="fas fa-puzzle-piece"></i> Blok Kodlama</div> 
             <div class="nav-btn" onclick="showSection('iot', this)"><i class="fas fa-robot"></i> Robotik Lab</div>
         </div>
 
@@ -96,7 +99,35 @@
                 </div>
             </div>
         </section>
+            <section id="blockcoding">
+    <h1>🧩 Blok Kodlama Stüdyosu</h1>
+    <p>Kod yazmayı bilmiyor musun? Blokları sürükle, yan tarafta C++ kodunun oluşmasını izle ve tek tuşla karta yükle!</p>
 
+    <div class="grid" style="grid-template-columns: 2fr 1fr; height: 600px;">
+        <div class="card" style="padding: 0; overflow: hidden; display: flex; flex-direction: column;">
+            <div class="card-header" style="padding: 15px; background: #222; margin:0;">
+                <h3><i class="fas fa-shapes"></i> Tasarım Alanı</h3>
+            </div>
+            <div id="blocklyDiv" style="flex: 1; width: 100%;"></div>
+        </div>
+
+        <div class="card" style="display: flex; flex-direction: column;">
+            <div class="card-header">
+                <h3><i class="fas fa-code"></i> Oluşan C++ Kodu</h3>
+            </div>
+            <textarea id="generatedCode" readonly style="flex: 1; background: #111; color: #00ff88; border: 1px solid #333; padding: 10px; font-family: 'Consolas', monospace; resize: none; margin-bottom: 15px; border-radius: 8px;">
+// Blokları sürüklediğinde kod burada oluşacak...
+            </textarea>
+            
+            <button class="serial-btn" style="background: var(--primary); color: #000; width: 100%; justify-content: center; padding: 15px;" onclick="transferAndCompile()">
+                <i class="fas fa-share-square"></i> Kodu Aktar ve Derle
+            </button>
+            <p style="font-size: 0.8rem; color: #666; text-align: center; margin-top: 10px;">
+                Bu tuş kodu Robotik Lab editörüne kopyalar ve derleme işlemini başlatır.
+            </p>
+        </div>
+    </div>
+</section>
         <section id="iot">
             <h1>🤖 Robotik Kodlama Laboratuvarı</h1>
             <p>İster C++ kodu yazıp yükleyin, ister bloklarla kontrol edin.</p>
@@ -207,5 +238,6 @@ void loop() {
 
 </body>
 </html>
+
 
 
