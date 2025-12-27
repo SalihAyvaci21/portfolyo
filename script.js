@@ -90,11 +90,11 @@ async function compileCode() {
 }
 
 // ==========================================
-// 4. IOT: YÜKLEME
+// 4. IOT: YÜKLEME (AVRgirl - Düzeltilmiş)
 // ==========================================
 async function runUploader(hexDataToUse = null) {
     const hexToFlash = hexDataToUse || compiledHexCode;
-    const boardType = document.getElementById('boardSelect').value; 
+    let boardType = document.getElementById('boardSelect').value;
 
     if (!hexToFlash) {
         alert("Önce kodu derlemelisiniz!");
@@ -107,7 +107,7 @@ async function runUploader(hexDataToUse = null) {
     }
 
     const statusLbl = document.getElementById('statusLabelNew');
-    statusLbl.innerText = `${boardType.toUpperCase()} aranıyor...`;
+    statusLbl.innerText = `Port aranıyor (${boardType})...`;
 
     try {
         const blob = new Blob([hexToFlash], { type: 'application/octet-stream' });
@@ -115,19 +115,29 @@ async function runUploader(hexDataToUse = null) {
 
         reader.onload = function(event) {
             const fileBuffer = event.target.result;
+            
+            // AVRGIRL AYARI:
+            // Eğer "nano-old" seçildiyse, avrgirl'e "nano" diyelim.
+            // (Not: Avrgirl genellikle baud rate'i otomatik dener, ama bazen nano-old için manuel ayar gerekebilir.
+            // Şimdilik standart nano profiliyle deneyelim, çünkü derleme 'old' yapıldı.)
+            let avrBoard = boardType;
+            if (boardType === 'nano-old') {
+                avrBoard = 'nano'; 
+            }
+
             const avrgirl = new AvrgirlArduino({ 
-                board: boardType, 
+                board: avrBoard, 
                 debug: true 
             });
 
             avrgirl.flash(fileBuffer, (error) => {
                 if (error) {
                     console.error(error);
-                    alert("Yükleme Hatası: " + error.message);
+                    alert("Yükleme Hatası: " + error.message + "\n\nİPUCU: Eğer Nano kullanıyorsanız diğer 'Nano' seçeneğini deneyin.");
                     statusLbl.innerText = "Durum: Yükleme Başarısız.";
                     statusLbl.style.color = "red";
                 } else {
-                    alert(`BAŞARILI! Kod ${boardType.toUpperCase()} kartına yüklendi.`);
+                    alert(`BAŞARILI! Kod yüklendi.`);
                     statusLbl.innerText = "Durum: Yüklendi.";
                     statusLbl.style.color = "#00e676";
                 }
