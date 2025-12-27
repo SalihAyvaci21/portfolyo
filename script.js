@@ -4,6 +4,8 @@
 let compiledHexCode = null;
 let serialPort = null;
 let serialWriter = null;
+let serialReader = null; // Okuyucu eklendi (Kilit yönetimi için şart)
+let keepReading = false; // Okuma döngüsü kontrolü
 let blinkInterval = null;
 
 // ==========================================
@@ -90,7 +92,7 @@ async function compileCode() {
 }
 
 // ==========================================
-// 4. IOT: YÜKLEME (AVRgirl - Düzeltilmiş)
+// 4. IOT: YÜKLEME (GÜVENLİ PORT KAPATMA)
 // ==========================================
 async function runUploader(hexDataToUse = null) {
     const hexToFlash = hexDataToUse || compiledHexCode;
@@ -101,8 +103,9 @@ async function runUploader(hexDataToUse = null) {
         return;
     }
     
+    // Eğer port açıksa zorla kapat
     if (serialPort) {
-        console.log("Yükleme için mevcut bağlantı kesiliyor...");
+        console.log("Yükleme için mevcut bağlantı güvenli şekilde kesiliyor...");
         await disconnectSerial(true); 
     }
 
@@ -116,10 +119,6 @@ async function runUploader(hexDataToUse = null) {
         reader.onload = function(event) {
             const fileBuffer = event.target.result;
             
-            // AVRGIRL AYARI:
-            // Eğer "nano-old" seçildiyse, avrgirl'e "nano" diyelim.
-            // (Not: Avrgirl genellikle baud rate'i otomatik dener, ama bazen nano-old için manuel ayar gerekebilir.
-            // Şimdilik standart nano profiliyle deneyelim, çünkü derleme 'old' yapıldı.)
             let avrBoard = boardType;
             if (boardType === 'nano-old') {
                 avrBoard = 'nano'; 
@@ -133,7 +132,7 @@ async function runUploader(hexDataToUse = null) {
             avrgirl.flash(fileBuffer, (error) => {
                 if (error) {
                     console.error(error);
-                    alert("Yükleme Hatası: " + error.message + "\n\nİPUCU: Eğer Nano kullanıyorsanız diğer 'Nano' seçeneğini deneyin.");
+                    alert("Yükleme Hatası: " + error.message);
                     statusLbl.innerText = "Durum: Yükleme Başarısız.";
                     statusLbl.style.color = "red";
                 } else {
@@ -172,18 +171,26 @@ async function runQuickTest() {
 }
 
 // ==========================================
-// 6. SERİ PORT
+// 6. SERİ PORT (GÜVENLİ YÖNETİM)
 // ==========================================
 async function connectSerial() {
     if (!navigator.serial) return alert("Tarayıcı desteklemiyor.");
-    if (serialPort && serialPort.readable) return alert("Zaten bağlı!");
+    if (serialPort) return alert("Zaten bağlı!");
 
     try {
         serialPort = await navigator.serial.requestPort();
         await serialPort.open({ baudRate: 115200 });
+
+        // Writer oluştur
         const textEncoder = new TextEncoderStream();
         const writableStreamClosed = textEncoder.readable.pipeTo(serialPort.writable);
         serialWriter = textEncoder.writable.getWriter();
+
+        // Reader oluştur (Kilitlenmemesi için gerekli)
+        /* Not: Eğer sadece yazma yapıyorsak okuma akışını kilitlemeye gerek yok,
+           ancak portun düzgün çalışması için bazen okuma akışını da kontrol etmek gerekebilir.
+           Şimdilik sadece yazma yapıyoruz.
+        */
 
         const badge = document.getElementById('statusBadge');
         if(badge) {
@@ -193,15 +200,42 @@ async function connectSerial() {
         document.getElementById('serialConsole').innerHTML += "<br>> Bağlantı Başarılı!";
         document.getElementById('btnConnect').style.display = 'none';
         document.getElementById('btnDisconnect').style.display = 'inline-flex';
-    } catch (err) { alert("Bağlantı Hatası: " + err); }
+    } catch (err) { 
+        console.error(err);
+        alert("Bağlantı Hatası: " + err); 
+        serialPort = null;
+    }
 }
 
 async function disconnectSerial(silent = false) {
+    // 1. Blink intervalini durdur
     if(blinkInterval) { clearInterval(blinkInterval); blinkInterval = null; }
+
     try {
-        if (serialWriter) { await serialWriter.releaseLock(); serialWriter = null; }
-        if (serialPort) { await serialPort.close(); serialPort = null; }
-    } catch(e) { console.log(e); }
+        // 2. Writer Kilidini Kaldır
+        if (serialWriter) {
+            await serialWriter.releaseLock();
+            serialWriter = null;
+        }
+
+        // 3. Reader Kilidini Kaldır (Eğer varsa)
+        if (serialReader) {
+            await serialReader.cancel();
+            await serialReader.releaseLock();
+            serialReader = null;
+        }
+
+        // 4. Portu Kapat
+        if (serialPort) {
+            await serialPort.close();
+            serialPort = null;
+        }
+    } catch(e) {
+        console.log("Port kapatma sırasında uyarı (önemsiz):", e);
+        // Hata olsa bile değişkenleri sıfırla ki kilitli kalmasın
+        serialPort = null;
+        serialWriter = null;
+    }
 
     if(!silent) {
         const badge = document.getElementById('statusBadge');
@@ -233,7 +267,7 @@ async function runBlock(command) {
 }
 
 // ==========================================
-// 7. OYUNLAR (GELİŞMİŞ)
+// 7. OYUNLAR (DEĞİŞİKLİK YOK)
 // ==========================================
 let canvas = document.getElementById('gameCanvas');
 let ctx = canvas ? canvas.getContext('2d') : null;
@@ -759,7 +793,7 @@ function initBlockly() {
     generator.forBlock['sensor_dht11'] = function(block) {
         var pin = block.getFieldValue('PIN');
         var type = block.getFieldValue('TYPE'); // temp or hum
-        generator.definitions_['inc_dht'] = '#include "DHT.h"';
+        generator.definitions_['inc_dht'] = '#include <DHT.h>';
         generator.definitions_['var_dht'+pin] = `DHT dht_${pin}(${pin}, DHT11);`;
         generator.setups_['setup_dht'+pin] = `  dht_${pin}.begin();`;
         var func = type === 'temp' ? 'readTemperature()' : 'readHumidity()';
