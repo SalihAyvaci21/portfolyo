@@ -398,18 +398,18 @@ function initMaze() {
 }
 
 // ==========================================
-// 8. BLOCKLY ENTEGRASYONU (YENİ)
+// 8. BLOCKLY ENTEGRASYONU (DÜZELTİLDİ)
 // ==========================================
 let workspace = null;
 
 function initBlockly() {
     if (workspace) return; 
 
-    // 1. Özel Bloklar
+    // 1. Blok Tanımları (JSON)
     Blockly.defineBlocksWithJsonArray([
         {
             "type": "arduino_base",
-            "message0": "Arduino Temel %1 Başlangıç (Setup) %2 %3 Döngü (Loop) %4 %5",
+            "message0": "Arduino Başlat %1 Kurulum (Setup) %2 %3 Ana Döngü (Loop) %4 %5",
             "args0": [
                 { "type": "input_dummy" },
                 { "type": "input_statement", "name": "SETUP" },
@@ -418,7 +418,7 @@ function initBlockly() {
                 { "type": "input_dummy" }
             ],
             "colour": 120,
-            "tooltip": "Temel Arduino Yapısı",
+            "tooltip": "Kodun ana gövdesi",
             "helpUrl": ""
         },
         {
@@ -427,13 +427,14 @@ function initBlockly() {
             "args0": [
                 {
                     "type": "field_dropdown",
+                    "name": "STATE", // İsim verildi
                     "options": [["YAK (HIGH)", "HIGH"], ["SÖNDÜR (LOW)", "LOW"]]
                 }
             ],
             "previousStatement": null,
             "nextStatement": null,
             "colour": 230,
-            "tooltip": "Dahili LED'i kontrol et",
+            "tooltip": "LED durumunu değiştirir",
             "helpUrl": ""
         },
         {
@@ -445,37 +446,36 @@ function initBlockly() {
             "previousStatement": null,
             "nextStatement": null,
             "colour": 160,
-            "tooltip": "Programı bekletir",
+            "tooltip": "Bekleme süresi",
             "helpUrl": ""
         }
     ]);
 
-    // 2. C++ Kod Üreticisi
+    // 2. C++ Kod Üreticisi Oluştur
     const generator = new Blockly.Generator('ARDUINO');
-    
+
+    // !!! KRİTİK DÜZELTME: SCRUB FONKSİYONU !!!
+    // Bu fonksiyon olmazsa bloklar alt alta bağlanmaz, sadece en üstteki çalışır.
+    generator.scrub_ = function(block, code) {
+        const nextBlock = block.nextConnection && block.nextConnection.targetBlock();
+        const nextCode = generator.blockToCode(nextBlock);
+        return code + nextCode;
+    };
+
+    // 2.1. Blokların Kod Karşılıkları
     generator.forBlock['arduino_base'] = function(block, generator) {
+        // Setup ve Loop içindeki blokları 'statementToCode' ile alıyoruz
         var setupCode = generator.statementToCode(block, 'SETUP');
         var loopCode = generator.statementToCode(block, 'LOOP');
+        
+        // Temel iskelet
         return `void setup() {\n  Serial.begin(115200);\n  pinMode(13, OUTPUT);\n${setupCode}}\n\nvoid loop() {\n${loopCode}}\n`;
     };
 
     generator.forBlock['led_set'] = function(block, generator) {
-        var rawVal = block.getFieldValue('options') || 'HIGH';
-        // Field name 'options' dropdown için otomatik isimdir genelde.
-        // Ama bazen karışabilir, basit çözüm olarak dropdown değerini doğrudan alalım:
-        // Eğer yukarıdaki çalışmazsa block.inputList üzerinden gideriz ama standart budur.
-        // Blok yapısına tekrar bakarsak dropdown ismi "options" değil, otomatik atanmış.
-        // Düzeltme:
-        var val = block.getField('options') ? block.getFieldValue('options') : 'HIGH';
-        // Daha güvenli yöntem:
-        var fields = block.inputList[0].fieldRow;
-        for(var i=0; i<fields.length; i++) {
-            if(fields[i] instanceof Blockly.FieldDropdown) {
-                val = fields[i].getValue();
-                break;
-            }
-        }
-        return `  digitalWrite(13, ${val});\n`;
+        // Dropdown değerini "STATE" ismiyle alıyoruz
+        var state = block.getFieldValue('STATE');
+        return `  digitalWrite(13, ${state});\n`;
     };
 
     generator.forBlock['delay_ms'] = function(block, generator) {
@@ -483,7 +483,7 @@ function initBlockly() {
         return `  delay(${ms});\n`;
     };
 
-    // 3. Çalışma Alanını Oluştur
+    // 3. Çalışma Alanını Ekrana Çiz (Inject)
     workspace = Blockly.inject('blocklyDiv', {
         toolbox: `
         <xml>
@@ -493,16 +493,25 @@ function initBlockly() {
         </xml>`,
         scrollbars: true,
         trashcan: true,
+        // Zoom özelliklerini ekleyelim, rahat kullanım için
+        zoom: {
+            controls: true,
+            wheel: true,
+            startScale: 1.0,
+            maxScale: 3,
+            minScale: 0.3,
+            scaleSpeed: 1.2
+        },
         theme: Blockly.Themes.Dark 
     });
 
-    // Başlangıç bloğu
+    // Başlangıç bloğunu otomatik koy
     const startBlock = workspace.newBlock('arduino_base');
     startBlock.initSvg();
     startBlock.render();
     startBlock.moveBy(50, 50);
 
-    // Değişiklikleri dinle
+    // Her değişiklikte kodu güncelle
     workspace.addChangeListener(() => {
         const code = generator.workspaceToCode(workspace);
         document.getElementById('generatedCode').value = code;
