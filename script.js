@@ -395,5 +395,23 @@ function initMaze() {
         if (map[ny][nx] != 1) { p.x = nx; p.y = ny; if (map[ny][nx] == 0) { score += 10; map[ny][nx] = 2; document.getElementById('scoreBoard').innerText = "SKOR: " + score; } } draw();
         if ([37, 38, 39, 40].includes(e.keyCode)) e.preventDefault();
     };
+
+    function showSection(id, btn) {
+    document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    
+    if (id !== 'games') stopCurrentGame();
+    
+    // --- YENİ EKLENEN KISIM ---
+    if (id === 'blockcoding') {
+        // Blok editörü ilk kez açılıyorsa veya boyut değiştiyse render'ı tazele
+        setTimeout(() => {
+            initBlockly();
+            if(workspace) Blockly.svgResize(workspace);
+        }, 200);
+    }
+    // ---------------------------
     draw();
 }
