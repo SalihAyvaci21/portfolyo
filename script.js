@@ -288,222 +288,6 @@ async function runBlock(command) {
 }
 
 // ==========================================
-// 7. OYUNLAR
-// ==========================================
-let canvas = document.getElementById('gameCanvas');
-let ctx = canvas ? canvas.getContext('2d') : null;
-let gameInterval, currentGame, score = 0;
-
-function stopCurrentGame() {
-    if(!ctx) return;
-    clearInterval(gameInterval);
-    ctx.clearRect(0, 0, 400, 400);
-    currentGame = null;
-}
-
-function startGame(t, b) {
-    if(!ctx) return;
-    stopCurrentGame();
-    document.querySelectorAll('.game-card').forEach(c => c.classList.remove('active-game'));
-    if(b) b.classList.add('active-game');
-    score = 0;
-    const sb = document.getElementById('scoreBoard');
-    if(sb) sb.innerText = "SKOR: 0";
-    
-    if (t === 'snake') initSnake();
-    if (t === 'tetris') initTetris();
-    if (t === 'maze') initMaze();
-}
-
-function initSnake() {
-    currentGame = 'snake';
-    let snake = [{ x: 10, y: 10 }], apple = { x: 15, y: 15 }, xv = 0, yv = 0;
-    document.onkeydown = e => {
-        if (currentGame !== 'snake') return;
-        if (e.keyCode == 37 && xv != 1) { xv = -1; yv = 0 }
-        if (e.keyCode == 38 && yv != 1) { xv = 0; yv = -1 }
-        if (e.keyCode == 39 && xv != -1) { xv = 1; yv = 0 }
-        if (e.keyCode == 40 && yv != -1) { xv = 0; yv = 1 }
-        if ([37, 38, 39, 40].includes(e.keyCode)) e.preventDefault();
-    };
-    gameInterval = setInterval(() => {
-        let h = { x: snake[0].x + xv, y: snake[0].y + yv };
-        if (h.x < 0) h.x = 19; if (h.x > 19) h.x = 0; if (h.y < 0) h.y = 19; if (h.y > 19) h.y = 0;
-        for (let i = 0; i < snake.length; i++) if (snake[i].x == h.x && snake[i].y == h.y) { score = 0; snake = [{ x: 10, y: 10 }]; xv = 0; yv = 0; }
-        snake.unshift(h);
-        if (h.x == apple.x && h.y == apple.y) {
-            score += 10;
-            document.getElementById('scoreBoard').innerText = "SKOR: " + score;
-            apple = { x: Math.floor(Math.random() * 20), y: Math.floor(Math.random() * 20) };
-        } else snake.pop();
-        ctx.fillStyle = '#000'; ctx.fillRect(0, 0, 400, 400);
-        ctx.fillStyle = '#ff0055'; ctx.fillRect(apple.x * 20, apple.y * 20, 18, 18);
-        ctx.fillStyle = '#00ff88'; for (let p of snake) ctx.fillRect(p.x * 20, p.y * 20, 18, 18);
-    }, 100);
-}
-
-function initTetris() {
-    currentGame = 'tetris';
-    let board = Array(20).fill().map(() => Array(10).fill(0)), piece = { m: [[[1]]], x: 3, y: 0, c: '#fff' };
-    const SHAPES = [[[1, 1, 1, 1]], [[1, 1], [1, 1]], [[1, 1, 1], [0, 1, 0]], [[1, 1, 1], [1, 0, 0]], [[1, 1, 0], [0, 1, 1]]];
-    function newPiece() { piece = { m: SHAPES[Math.floor(Math.random() * 5)], x: 3, y: 0, c: ['#0f8', '#f05', '#70f'][Math.floor(Math.random() * 3)] }; if (collide()) board.forEach(r => r.fill(0)); }
-    function collide() { return piece.m.some((r, y) => r.some((v, x) => v && (board[y + piece.y] && board[y + piece.y][x + piece.x]) !== 0)); }
-    function draw() {
-        ctx.fillStyle = '#000'; ctx.fillRect(0, 0, 400, 400); ctx.strokeStyle = '#333'; ctx.strokeRect(100, 0, 200, 400);
-        board.forEach((r, y) => r.forEach((v, x) => { if (v) { ctx.fillStyle = '#333'; ctx.fillRect(x * 20 + 100, y * 20, 19, 19); } }));
-        piece.m.forEach((r, y) => r.forEach((v, x) => { if (v) { ctx.fillStyle = piece.c; ctx.fillRect((x + piece.x) * 20 + 100, (y + piece.y) * 20, 19, 19); } }));
-    }
-    function update() {
-        piece.y++;
-        if (collide()) {
-            piece.y--; piece.m.forEach((r, y) => r.forEach((v, x) => { if (v) board[y + piece.y][x + piece.x] = 1; }));
-            for (let y = 19; y > 0; y--) if (board[y].every(x => x)) { board.splice(y, 1); board.unshift(Array(10).fill(0)); score += 100; y++; } newPiece();
-        } draw();
-    }
-    newPiece(); gameInterval = setInterval(update, 500);
-    document.onkeydown = e => {
-        if (currentGame !== 'tetris') return;
-        if (e.keyCode == 37) { piece.x--; if (collide()) piece.x++ }
-        if (e.keyCode == 39) { piece.x++; if (collide()) piece.x-- }
-        if (e.keyCode == 40) update();
-        if (e.keyCode == 38) { let old = piece.m; piece.m = piece.m[0].map((_, i) => piece.m.map(r => r[i]).reverse()); if (collide()) piece.m = old; } draw();
-        if ([37, 38, 39, 40].includes(e.keyCode)) e.preventDefault();
-    };
-}
-
-function initMaze() {
-    currentGame = 'maze';
-    let map = [[1, 1, 1, 1, 1, 1, 1, 1, 1, 1], [1, 0, 0, 0, 1, 0, 0, 0, 0, 1], [1, 0, 1, 0, 1, 0, 1, 1, 0, 1], [1, 0, 0, 0, 0, 0, 0, 0, 0, 1], [1, 0, 1, 1, 1, 1, 1, 1, 0, 1], [1, 0, 0, 0, 0, 0, 0, 0, 0, 1], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]];
-    let p = { x: 1, y: 1 }, g = { x: 8, y: 5 };
-    function draw() {
-        ctx.fillStyle = '#000'; ctx.fillRect(0, 0, 400, 400);
-        for (let y = 0; y < 7; y++) for (let x = 0; x < 10; x++) { if (map[y][x] == 1) { ctx.fillStyle = '#03c'; ctx.fillRect(x * 40, y * 40, 40, 40); } else if (map[y][x] == 0) { ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x * 40 + 20, y * 40 + 20, 4, 0, 6.28); ctx.fill(); } }
-        ctx.fillStyle = '#ff0'; ctx.beginPath(); ctx.arc(p.x * 40 + 20, p.y * 40 + 20, 15, 0.6, 5.6); ctx.fill(); ctx.fillStyle = '#f00'; ctx.fillRect(g.x * 40 + 5, g.y * 40 + 5, 30, 30);
-    }
-    gameInterval = setInterval(() => {
-        if (Math.random() > 0.5) {
-            let m = [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }].filter(d => map[g.y + d.y][g.x + d.x] != 1);
-            if (m.length) { let nm = m[Math.floor(Math.random() * m.length)]; g.x += nm.x; g.y += nm.y; }
-        }
-        if (p.x == g.x && p.y == g.y) { score = 0; p = { x: 1, y: 1 }; g = { x: 8, y: 5 }; alert("Yakaladın!"); } draw();
-    }, 500);
-    document.onkeydown = e => {
-        if (currentGame !== 'maze') return;
-        let nx = p.x, ny = p.y;
-        if (e.keyCode == 37) nx--; if (e.keyCode == 39) nx++; if (e.keyCode == 38) ny--; if (e.keyCode == 40) ny++;
-        if (map[ny][nx] != 1) { p.x = nx; p.y = ny; if (map[ny][nx] == 0) { score += 10; map[ny][nx] = 2; document.getElementById('scoreBoard').innerText = "SKOR: " + score; } } draw();
-        if ([37, 38, 39, 40].includes(e.keyCode)) e.preventDefault();
-    };
-    draw();
-}
-
-// ==========================================
-// 8. BLOCKLY ENTEGRASYONU (ÇÖP KUTUSU + SCRUB DÜZELTİLDİ)
-// ==========================================
-let workspace = null;
-
-function initBlockly() {
-    if (workspace) return; 
-
-    // 1. Blok Tanımları
-    Blockly.defineBlocksWithJsonArray([
-        {
-            "type": "arduino_base",
-            "message0": "Arduino Başlat %1 Kurulum (Setup) %2 %3 Ana Döngü (Loop) %4 %5",
-            "args0": [
-                { "type": "input_dummy" },
-                { "type": "input_statement", "name": "SETUP" },
-                { "type": "input_dummy" },
-                { "type": "input_statement", "name": "LOOP" },
-                { "type": "input_dummy" }
-            ],
-            "colour": 120,
-            "tooltip": "Kodun ana gövdesi"
-        },
-        {
-            "type": "led_set",
-            "message0": "LED'i %1 (Pin 13)",
-            "args0": [
-                {
-                    "type": "field_dropdown",
-                    "name": "STATE",
-                    "options": [["YAK (HIGH)", "HIGH"], ["SÖNDÜR (LOW)", "LOW"]]
-                }
-            ],
-            "previousStatement": null,
-            "nextStatement": null,
-            "colour": 230
-        },
-        {
-            "type": "delay_ms",
-            "message0": "%1 milisaniye bekle",
-            "args0": [
-                { "type": "field_number", "name": "MS", "value": 1000, "min": 0 }
-            ],
-            "previousStatement": null,
-            "nextStatement": null,
-            "colour": 160
-        }
-    ]);
-
-    const generator = new Blockly.Generator('ARDUINO');
-    generator.scrub_ = function(block, code) {
-        const nextBlock = block.nextConnection && block.nextConnection.targetBlock();
-        const nextCode = generator.blockToCode(nextBlock);
-        return code + nextCode;
-    };
-
-    generator.forBlock['arduino_base'] = function(block, generator) {
-        var setupCode = generator.statementToCode(block, 'SETUP');
-        var loopCode = generator.statementToCode(block, 'LOOP');
-        return `void setup() {\n  Serial.begin(115200);\n  pinMode(13, OUTPUT);\n${setupCode}}\n\nvoid loop() {\n${loopCode}}\n`;
-    };
-    generator.forBlock['led_set'] = function(block, generator) {
-        var state = block.getFieldValue('STATE');
-        return `  digitalWrite(13, ${state});\n`;
-    };
-    generator.forBlock['delay_ms'] = function(block, generator) {
-        var ms = block.getFieldValue('MS');
-        return `  delay(${ms});\n`;
-    };
-
-    // --- KRİTİK AYARLAR: move ve trashcan ---
-    workspace = Blockly.inject('blocklyDiv', {
-        toolbox: `
-        <xml>
-            <block type="arduino_base"></block>
-            <block type="led_set"></block>
-            <block type="delay_ms"></block>
-        </xml>`,
-        trashcan: true, // Çöp kutusu aktif
-        move: {
-            scrollbars: true,
-            drag: true,
-            wheel: true
-        },
-        zoom: {
-            controls: true,
-            wheel: true,
-            startScale: 1.0,
-            maxScale: 3,
-            minScale: 0.3,
-            scaleSpeed: 1.2
-        },
-        theme: Blockly.Themes.Dark 
-    });
-
-    const startBlock = workspace.newBlock('arduino_base');
-    startBlock.initSvg();
-    startBlock.render();
-    startBlock.moveBy(50, 50);
-
-    workspace.addChangeListener(() => {
-        const code = generator.workspaceToCode(workspace);
-        document.getElementById('generatedCode').value = code;
-    });
-}
-
-// ==========================================
 // 7. OYUNLAR (GELİŞTİRİLMİŞ KONTROL & UI)
 // ==========================================
 let canvas = document.getElementById('gameCanvas');
@@ -546,6 +330,8 @@ function startGame(t, b) {
     if (t === 'snake') initSnake();
     if (t === 'tetris') initTetris();
     if (t === 'maze') initMaze();
+    if (t === 'pong') initPong();
+    if (t === 'breakout') initBreakout();
 }
 
 function updateScore(val) {
@@ -722,4 +508,357 @@ function initMaze() {
         draw();
     };
     draw();
+}
+
+// --- PONG (YENİ) ---
+function initPong() {
+    currentGame = 'pong';
+    let playerY = 150, aiY = 150;
+    let ball = { x: 200, y: 200, dx: 4, dy: 4, size: 8 };
+    const paddleH = 60, paddleW = 10;
+
+    gameInterval = setInterval(() => {
+        // Hareket
+        ball.x += ball.dx;
+        ball.y += ball.dy;
+
+        // Duvar Çarpışması (Üst/Alt)
+        if (ball.y < 0 || ball.y > 400) ball.dy *= -1;
+
+        // Raket Çarpışması
+        if (ball.x < 20 && ball.y > playerY && ball.y < playerY + paddleH) {
+            ball.dx *= -1.1; // Hızlanarak dön
+            score += 10; updateScore(score);
+        }
+        if (ball.x > 380 && ball.y > aiY && ball.y < aiY + paddleH) {
+            ball.dx *= -1.1;
+        }
+
+        // Gol Olma Durumu
+        if (ball.x < 0) { // AI Kazandı
+            score = 0; updateScore(0); ball = {x:200, y:200, dx:4, dy:4, size:8};
+        }
+        if (ball.x > 400) { // Oyuncu Kazandı
+            score += 100; updateScore(score); ball = {x:200, y:200, dx:-4, dy:4, size:8};
+        }
+
+        // AI Hareketi
+        if (aiY + paddleH/2 < ball.y) aiY += 3;
+        else aiY -= 3;
+
+        // Çizim
+        ctx.fillStyle = '#000'; ctx.fillRect(0, 0, 400, 400);
+        ctx.strokeStyle = '#333'; ctx.beginPath(); ctx.moveTo(200,0); ctx.lineTo(200,400); ctx.stroke();
+        
+        ctx.fillStyle = '#00ff88'; ctx.fillRect(10, playerY, paddleW, paddleH); // Oyuncu
+        ctx.fillStyle = '#ff0055'; ctx.fillRect(380, aiY, paddleW, paddleH); // AI
+        ctx.fillStyle = '#fff'; ctx.fillRect(ball.x, ball.y, ball.size, ball.size); // Top
+
+    }, 1000/60);
+
+    // Kontroller
+    document.onkeydown = e => {
+        if (currentGame !== 'pong') return;
+        if (e.keyCode == 38) playerY -= 20; // Yukarı
+        if (e.keyCode == 40) playerY += 20; // Aşağı
+        if (playerY < 0) playerY = 0;
+        if (playerY > 340) playerY = 340;
+    };
+}
+
+// --- BREAKOUT (YENİ) ---
+function initBreakout() {
+    currentGame = 'breakout';
+    let paddleX = 160;
+    let ball = { x: 200, y: 300, dx: 3, dy: -3, size: 8 };
+    let bricks = [];
+    
+    // Tuğlaları Oluştur
+    for(let c=0; c<8; c++) {
+        for(let r=0; r<5; r++) {
+            bricks.push({ x: c*(400/8)+5, y: r*20+30, status: 1 });
+        }
+    }
+
+    gameInterval = setInterval(() => {
+        // Hareket
+        ball.x += ball.dx;
+        ball.y += ball.dy;
+
+        // Duvarlar
+        if(ball.x < 0 || ball.x > 400) ball.dx *= -1;
+        if(ball.y < 0) ball.dy *= -1;
+        
+        // Raket
+        if(ball.y > 380 && ball.x > paddleX && ball.x < paddleX + 80) {
+            ball.dy *= -1;
+            ball.dx = 6 * ((ball.x-(paddleX+40))/40); // Köşeye çarparsa açı değişsin
+        }
+
+        // Yandı
+        if(ball.y > 400) {
+            score = 0; updateScore(0);
+            ball = { x: 200, y: 300, dx: 3, dy: -3, size: 8 };
+            // Tuğlaları yenile
+            bricks.forEach(b => b.status = 1);
+        }
+
+        // Tuğla Kırma
+        bricks.forEach(b => {
+            if(b.status == 1) {
+                if(ball.x > b.x && ball.x < b.x+45 && ball.y > b.y && ball.y < b.y+15) {
+                    ball.dy *= -1;
+                    b.status = 0;
+                    score += 10; updateScore(score);
+                }
+            }
+        });
+
+        // Çizim
+        ctx.fillStyle = '#000'; ctx.fillRect(0, 0, 400, 400);
+        ctx.fillStyle = '#00bcd4'; ctx.fillRect(paddleX, 385, 80, 10); // Raket
+        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(ball.x, ball.y, 5, 0, Math.PI*2); ctx.fill(); // Top
+
+        bricks.forEach(b => {
+            if(b.status == 1) {
+                ctx.fillStyle = `hsl(${b.y}, 70%, 50%)`; // Renkli tuğlalar
+                ctx.fillRect(b.x, b.y, 45, 15);
+            }
+        });
+
+    }, 1000/60);
+
+    document.onkeydown = e => {
+        if (currentGame !== 'breakout') return;
+        if (e.keyCode == 37) paddleX -= 25;
+        if (e.keyCode == 39) paddleX += 25;
+        if (paddleX < 0) paddleX = 0;
+        if (paddleX > 320) paddleX = 320;
+    };
+}
+
+// ==========================================
+// 8. BLOCKLY ENTEGRASYONU (GELİŞMİŞ - SERVO/PWM/LM35)
+// ==========================================
+let workspace = null;
+
+function initBlockly() {
+    if (workspace) return; 
+
+    // 1. Yeni Blok Tanımları (PWM, Servo, LM35 eklendi)
+    Blockly.defineBlocksWithJsonArray([
+        {
+            "type": "arduino_base",
+            "message0": "Arduino Başlat %1 Kurulum (Setup) %2 %3 Ana Döngü (Loop) %4 %5",
+            "args0": [
+                { "type": "input_dummy" },
+                { "type": "input_statement", "name": "SETUP" },
+                { "type": "input_dummy" },
+                { "type": "input_statement", "name": "LOOP" },
+                { "type": "input_dummy" }
+            ],
+            "colour": 120,
+            "tooltip": "Kodun ana gövdesi"
+        },
+        {
+            "type": "led_set",
+            "message0": "Dijital Yaz (LED) %1 Durum: %2",
+            "args0": [
+                { "type": "field_dropdown", "name": "PIN", "options": [["Pin 13", "13"], ["Pin 12", "12"], ["Pin 11", "11"], ["Pin 2", "2"]] },
+                { "type": "field_dropdown", "name": "STATE", "options": [["YAK (HIGH)", "HIGH"], ["SÖNDÜR (LOW)", "LOW"]] }
+            ],
+            "previousStatement": null,
+            "nextStatement": null,
+            "colour": 230
+        },
+        {
+            "type": "pwm_set",
+            "message0": "PWM Yaz (AnalogWrite) %1 Değer (0-255): %2",
+            "args0": [
+                { "type": "field_dropdown", "name": "PIN", "options": [["Pin 3", "3"], ["Pin 5", "5"], ["Pin 6", "6"], ["Pin 9", "9"], ["Pin 10", "10"], ["Pin 11", "11"]] },
+                { "type": "input_value", "name": "VAL", "check": "Number" }
+            ],
+            "previousStatement": null,
+            "nextStatement": null,
+            "colour": 230,
+            "tooltip": "Motor hızı veya LED parlaklığı için"
+        },
+        {
+            "type": "servo_move",
+            "message0": "Servo Motor (Pin %1) Açı: %2 derece",
+            "args0": [
+                { "type": "field_dropdown", "name": "PIN", "options": [["9", "9"], ["10", "10"], ["3", "3"], ["5", "5"]] },
+                { "type": "input_value", "name": "DEGREE", "check": "Number" }
+            ],
+            "previousStatement": null,
+            "nextStatement": null,
+            "colour": 300,
+            "tooltip": "Servo kütüphanesini kullanır"
+        },
+        {
+            "type": "lm35_read",
+            "message0": "LM35 Sıcaklık Oku (Pin %1)",
+            "args0": [
+                { "type": "field_dropdown", "name": "PIN", "options": [["A0", "A0"], ["A1", "A1"], ["A2", "A2"]] }
+            ],
+            "output": "Number",
+            "colour": 180,
+            "tooltip": "Santigrat derece döndürür"
+        },
+        {
+            "type": "math_number",
+            "message0": "%1",
+            "args0": [{ "type": "field_number", "name": "NUM", "value": 0 }],
+            "output": "Number",
+            "colour": 210
+        },
+        {
+            "type": "delay_ms",
+            "message0": "%1 ms bekle",
+            "args0": [{ "type": "field_number", "name": "MS", "value": 1000 }],
+            "previousStatement": null,
+            "nextStatement": null,
+            "colour": 160
+        }
+    ]);
+
+    // 2. Generator ve "Definitions" Yönetimi
+    const generator = new Blockly.Generator('ARDUINO');
+    
+    // Global değişkenleri ve kütüphaneleri saklamak için depo
+    generator.definitions_ = {};
+    generator.setups_ = {};
+
+    generator.scrub_ = function(block, code) {
+        const nextBlock = block.nextConnection && block.nextConnection.targetBlock();
+        const nextCode = generator.blockToCode(nextBlock);
+        return code + nextCode;
+    };
+
+    // --- BLOK ÇEVİRİLERİ ---
+
+    generator.forBlock['arduino_base'] = function(block, generator) {
+        var setupCode = generator.statementToCode(block, 'SETUP');
+        var loopCode = generator.statementToCode(block, 'LOOP');
+        
+        // Setup bloğuna eklenen otomatik kodları al (Servo attach vb.)
+        var autoSetup = "";
+        for (var key in generator.setups_) {
+            autoSetup += generator.setups_[key] + "\n";
+        }
+
+        // Global tanımları al (Include, Variables)
+        var definitions = "";
+        for (var key in generator.definitions_) {
+            definitions += generator.definitions_[key] + "\n";
+        }
+
+        return `${definitions}\nvoid setup() {\n  Serial.begin(115200);\n${autoSetup}${setupCode}}\n\nvoid loop() {\n${loopCode}}\n`;
+    };
+
+    generator.forBlock['led_set'] = function(block, generator) {
+        var pin = block.getFieldValue('PIN');
+        var state = block.getFieldValue('STATE');
+        // Setup kısmına pinMode ekleyelim (Eğer daha önce eklenmediyse)
+        generator.setups_['pin_' + pin] = `  pinMode(${pin}, OUTPUT);`;
+        return `  digitalWrite(${pin}, ${state});\n`;
+    };
+
+    generator.forBlock['pwm_set'] = function(block, generator) {
+        var pin = block.getFieldValue('PIN');
+        var val = generator.valueToCode(block, 'VAL', 0) || '0';
+        generator.setups_['pin_' + pin] = `  pinMode(${pin}, OUTPUT);`;
+        return `  analogWrite(${pin}, ${val});\n`;
+    };
+
+    generator.forBlock['servo_move'] = function(block, generator) {
+        var pin = block.getFieldValue('PIN');
+        var degree = generator.valueToCode(block, 'DEGREE', 0) || '90';
+        
+        // 1. Kütüphaneyi ekle
+        generator.definitions_['include_servo'] = '#include <Servo.h>';
+        // 2. Servo nesnesi oluştur (Global)
+        generator.definitions_['var_servo' + pin] = `Servo servo_${pin};`;
+        // 3. Setup içinde attach et
+        generator.setups_['servo_attach' + pin] = `  servo_${pin}.attach(${pin});`;
+        
+        return `  servo_${pin}.write(${degree});\n`;
+    };
+
+    generator.forBlock['lm35_read'] = function(block, generator) {
+        var pin = block.getFieldValue('PIN');
+        // LM35 formülü: (AnalogRead * 5.0 / 1024.0) * 100
+        return [`(analogRead(${pin}) * 0.48828125)`, 0]; // Order 0 = Atomic
+    };
+
+    generator.forBlock['math_number'] = function(block) {
+        return [String(block.getFieldValue('NUM')), 0];
+    };
+
+    generator.forBlock['delay_ms'] = function(block) {
+        return `  delay(${block.getFieldValue('MS')});\n`;
+    };
+
+    // 3. Workspace Oluşturma
+    workspace = Blockly.inject('blocklyDiv', {
+        toolbox: `
+        <xml>
+            <category name="Temel" colour="120">
+                <block type="arduino_base"></block>
+                <block type="delay_ms"></block>
+            </category>
+            <category name="Giriş/Çıkış" colour="230">
+                <block type="led_set"></block>
+                <block type="pwm_set">
+                    <value name="VAL"><block type="math_number"><field name="NUM">128</field></block></value>
+                </block>
+            </category>
+            <category name="Motorlar" colour="300">
+                <block type="servo_move">
+                    <value name="DEGREE"><block type="math_number"><field name="NUM">90</field></block></value>
+                </block>
+            </category>
+            <category name="Sensörler" colour="180">
+                <block type="lm35_read"></block>
+            </category>
+            <category name="Matematik" colour="210">
+                <block type="math_number"></block>
+            </category>
+        </xml>`,
+        trashcan: true,
+        move: { scrollbars: true, drag: true, wheel: true },
+        zoom: { controls: true, wheel: true, startScale: 1.0, maxScale: 3, minScale: 0.3, scaleSpeed: 1.2 },
+        theme: Blockly.Themes.Dark 
+    });
+
+    const startBlock = workspace.newBlock('arduino_base');
+    startBlock.initSvg();
+    startBlock.render();
+    startBlock.moveBy(50, 50);
+
+    // Her değişiklikte kodu sıfırla ve yeniden oluştur
+    workspace.addChangeListener(() => {
+        // Global tanımları temizle ki tekrar tekrar yazmasın
+        generator.definitions_ = {};
+        generator.setups_ = {};
+        
+        const code = generator.workspaceToCode(workspace);
+        document.getElementById('generatedCode').value = code;
+    });
+}
+
+function transferAndCompile() {
+    const code = document.getElementById('generatedCode').value;
+    
+    const cppEditor = document.getElementById('cppEditor');
+    if(cppEditor) {
+        cppEditor.value = code;
+    }
+
+    const iotBtn = document.querySelector('.nav-btn[onclick*="iot"]');
+    if(iotBtn) showSection('iot', iotBtn);
+
+    setTimeout(() => {
+        compileCode();
+    }, 600);
 }
