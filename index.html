@@ -79,27 +79,57 @@
             </div>
         </section>
 
-        <section id="games">
-            <h1>Mini Arcade</h1>
-            <div class="game-container-split">
-                <div class="game-list">
-                    <div class="card game-card" onclick="startGame('snake', this)">
-                        <h3><i class="fas fa-worm"></i> Cyber Snake</h3>
-                    </div>
-                    <div class="card game-card" onclick="startGame('tetris', this)">
-                        <h3><i class="fas fa-cubes"></i> Neon Blocks</h3>
-                    </div>
-                    <div class="card game-card" onclick="startGame('maze', this)">
-                        <h3><i class="fas fa-ghost"></i> Maze Chase</h3>
-                    </div>
-                </div>
-                <div class="game-stage">
-                    <div id="scoreBoard" class="score-board">SKOR: 0</div>
-                    <canvas id="gameCanvas" width="400" height="400"></canvas>
-                    <div id="gameControls" class="game-controls">Oynamak için bir oyun seçin</div>
+       <section id="games">
+    <h1>🕹️ Arcade Zone</h1>
+    <p>Retro oyunlarla mola ver. (Klavye yön tuşlarını veya aşağıdaki butonları kullanabilirsin)</p>
+    
+    <div class="game-container-split">
+        <div class="game-list">
+            <div class="game-card" onclick="startGame('snake', this)">
+                <div style="font-size: 2rem; color: #ff0055;"><i class="fas fa-worm"></i></div>
+                <div>
+                    <h3>Cyber Snake</h3>
+                    <div style="font-size: 0.8rem; color: #888;">Klasik Yılan Oyunu</div>
                 </div>
             </div>
-        </section>
+
+            <div class="game-card" onclick="startGame('tetris', this)">
+                <div style="font-size: 2rem; color: #00bcd4;"><i class="fas fa-cubes"></i></div>
+                <div>
+                    <h3>Neon Blocks</h3>
+                    <div style="font-size: 0.8rem; color: #888;">Tetris Klonu</div>
+                </div>
+            </div>
+
+            <div class="game-card" onclick="startGame('maze', this)">
+                <div style="font-size: 2rem; color: #ff9800;"><i class="fas fa-ghost"></i></div>
+                <div>
+                    <h3>Maze Chase</h3>
+                    <div style="font-size: 0.8rem; color: #888;">Labirentten Kaçış</div>
+                </div>
+            </div>
+            
+            <div style="margin-top: 20px; padding: 15px; background: rgba(255,0,0,0.1); border-radius: 8px; font-size: 0.9rem; color: #aaa;">
+                <i class="fas fa-info-circle"></i> Oyun oynarken sayfanın kaymaması için ok tuşları sayfayı kilitleyecektir.
+            </div>
+        </div>
+
+        <div class="game-stage">
+            <div id="scoreBoard" class="score-board">SKOR: 0000</div>
+            
+            <div class="screen-wrapper">
+                <canvas id="gameCanvas" width="400" height="400"></canvas>
+            </div>
+
+            <div class="arcade-controls">
+                <button class="d-btn d-up" onmousedown="handleControl(38)" onmouseup="handleControlRelease()"><i class="fas fa-arrow-up"></i></button>
+                <button class="d-btn d-left" onmousedown="handleControl(37)" onmouseup="handleControlRelease()"><i class="fas fa-arrow-left"></i></button>
+                <button class="d-btn d-down" onmousedown="handleControl(40)" onmouseup="handleControlRelease()"><i class="fas fa-arrow-down"></i></button>
+                <button class="d-btn d-right" onmousedown="handleControl(39)" onmouseup="handleControlRelease()"><i class="fas fa-arrow-right"></i></button>
+            </div>
+        </div>
+    </div>
+</section>
 
         <section id="blockcoding">
             <h1>🧩 Blok Kodlama Stüdyosu</h1>
@@ -241,3 +271,4 @@ void loop() {
 
 </body>
 </html>
+
