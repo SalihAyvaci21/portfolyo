@@ -69,3 +69,52 @@ p { line-height: 1.6; color: var(--text-muted); }
 .serial-btn.connect { background: var(--secondary); }
 .status-badge { font-size: 0.8rem; padding: 5px 10px; border-radius: 12px; background: #333; color: #aaa; display: flex; align-items: center; gap: 5px; }
 .status-badge.connected { color: #00ff88; background: rgba(0, 255, 136, 0.1); }
+
+
+/* --- CV VE İLETİŞİM BUTONLARI --- */
+.cv-container {
+    display: flex;
+    gap: 15px;
+    margin-top: 25px;
+    margin-bottom: 35px;
+}
+
+.cv-btn, .contact-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 25px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+}
+
+/* CV Butonu - Primary Renk (Yeşil) */
+.cv-btn {
+    background: rgba(0, 255, 136, 0.1);
+    color: var(--primary);
+    border-color: var(--primary);
+}
+
+.cv-btn:hover {
+    background: var(--primary);
+    color: #000;
+    box-shadow: 0 0 20px rgba(0, 255, 136, 0.4);
+    transform: translateY(-3px);
+}
+
+/* İletişim Butonu - Secondary Renk (Mor) Opsiyonel */
+.contact-btn {
+    background: rgba(112, 0, 255, 0.1);
+    color: var(--secondary);
+    border-color: var(--secondary);
+}
+
+.contact-btn:hover {
+    background: var(--secondary);
+    color: #fff;
+    box-shadow: 0 0 20px rgba(112, 0, 255, 0.4);
+    transform: translateY(-3px);
+}
