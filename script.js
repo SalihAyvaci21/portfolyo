@@ -14,7 +14,16 @@ function showSection(id, btn) {
     document.getElementById(id).classList.add('active');
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
+    
     if (id !== 'games') stopCurrentGame();
+
+    // Blok kodlama sekmesine geçilirse Blockly'i yükle ve yeniden boyutlandır
+    if (id === 'blockcoding') {
+        setTimeout(() => {
+            initBlockly();
+            if(workspace) Blockly.svgResize(workspace);
+        }, 200);
+    }
 }
 
 // ==========================================
@@ -80,7 +89,7 @@ async function compileCode() {
 }
 
 // ==========================================
-// 4. IOT: YÜKLEME (AVRgirl) - DÜZELTİLDİ
+// 4. IOT: YÜKLEME (AVRgirl)
 // ==========================================
 async function runUploader(hexDataToUse = null) {
     const hexToFlash = hexDataToUse || compiledHexCode;
@@ -90,21 +99,15 @@ async function runUploader(hexDataToUse = null) {
         return;
     }
     
-    // Eğer bağlantı varsa önce onu tamamen kes
-    // Çünkü AVRGirl portu tek başına kullanmak ister.
     if (serialPort) {
         console.log("Mevcut bağlantı yükleme için kesiliyor...");
-        await disconnectSerial(true); // true = UI güncelleme yapmadan sessizce kes
+        await disconnectSerial(true); 
     }
 
     const statusLbl = document.getElementById('statusLabelNew') || document.getElementById('statusBadge');
     if(statusLbl) statusLbl.innerText = "Port Seçiliyor...";
 
     try {
-        // DİKKAT: Burada navigator.serial.requestPort() KULLANMIYORUZ.
-        // AVRGirl kütüphanesi flash() fonksiyonu içinde kendi port seçim ekranını açacak.
-        // Böylece 2 kere sorma sorunu çözülür.
-        
         const blob = new Blob([hexToFlash], { type: 'application/octet-stream' });
         const reader = new FileReader();
 
@@ -163,7 +166,6 @@ async function runQuickTest() {
 
         if(btn) btn.innerHTML = '<i class="fas fa-microchip"></i> Yükleniyor...';
         
-        // Yükleyiciye gönder
         await runUploader(hexText);
 
     } catch (err) {
@@ -187,7 +189,6 @@ async function connectSerial() {
         return;
     }
 
-    // Eğer zaten bağlıysa tekrar bağlanmaya çalışma
     if (serialPort && serialPort.readable) {
         alert("Zaten bağlı!");
         return;
@@ -201,7 +202,6 @@ async function connectSerial() {
         const writableStreamClosed = textEncoder.readable.pipeTo(serialPort.writable);
         serialWriter = textEncoder.writable.getWriter();
 
-        // Arayüz
         const badge = document.getElementById('statusBadge');
         if(badge) {
             badge.innerHTML = '<i class="fas fa-circle" style="color:#00e676; font-size:0.6rem;"></i> Bağlandı';
@@ -218,7 +218,6 @@ async function connectSerial() {
     }
 }
 
-// Sessiz mod eklendi: Yükleme öncesi otomatik kapatmada uyarı vermesin diye
 async function disconnectSerial(silent = false) {
     if(blinkInterval) {
         clearInterval(blinkInterval);
@@ -395,23 +394,133 @@ function initMaze() {
         if (map[ny][nx] != 1) { p.x = nx; p.y = ny; if (map[ny][nx] == 0) { score += 10; map[ny][nx] = 2; document.getElementById('scoreBoard').innerText = "SKOR: " + score; } } draw();
         if ([37, 38, 39, 40].includes(e.keyCode)) e.preventDefault();
     };
-
-    function showSection(id, btn) {
-    document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
-    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    
-    if (id !== 'games') stopCurrentGame();
-    
-    // --- YENİ EKLENEN KISIM ---
-    if (id === 'blockcoding') {
-        // Blok editörü ilk kez açılıyorsa veya boyut değiştiyse render'ı tazele
-        setTimeout(() => {
-            initBlockly();
-            if(workspace) Blockly.svgResize(workspace);
-        }, 200);
-    }
-    // ---------------------------
     draw();
+}
+
+// ==========================================
+// 8. BLOCKLY ENTEGRASYONU (YENİ)
+// ==========================================
+let workspace = null;
+
+function initBlockly() {
+    if (workspace) return; 
+
+    // 1. Özel Bloklar
+    Blockly.defineBlocksWithJsonArray([
+        {
+            "type": "arduino_base",
+            "message0": "Arduino Temel %1 Başlangıç (Setup) %2 %3 Döngü (Loop) %4 %5",
+            "args0": [
+                { "type": "input_dummy" },
+                { "type": "input_statement", "name": "SETUP" },
+                { "type": "input_dummy" },
+                { "type": "input_statement", "name": "LOOP" },
+                { "type": "input_dummy" }
+            ],
+            "colour": 120,
+            "tooltip": "Temel Arduino Yapısı",
+            "helpUrl": ""
+        },
+        {
+            "type": "led_set",
+            "message0": "LED'i %1 (Pin 13)",
+            "args0": [
+                {
+                    "type": "field_dropdown",
+                    "options": [["YAK (HIGH)", "HIGH"], ["SÖNDÜR (LOW)", "LOW"]]
+                }
+            ],
+            "previousStatement": null,
+            "nextStatement": null,
+            "colour": 230,
+            "tooltip": "Dahili LED'i kontrol et",
+            "helpUrl": ""
+        },
+        {
+            "type": "delay_ms",
+            "message0": "%1 milisaniye bekle",
+            "args0": [
+                { "type": "field_number", "name": "MS", "value": 1000, "min": 0 }
+            ],
+            "previousStatement": null,
+            "nextStatement": null,
+            "colour": 160,
+            "tooltip": "Programı bekletir",
+            "helpUrl": ""
+        }
+    ]);
+
+    // 2. C++ Kod Üreticisi
+    const generator = new Blockly.Generator('ARDUINO');
+    
+    generator.forBlock['arduino_base'] = function(block, generator) {
+        var setupCode = generator.statementToCode(block, 'SETUP');
+        var loopCode = generator.statementToCode(block, 'LOOP');
+        return `void setup() {\n  Serial.begin(115200);\n  pinMode(13, OUTPUT);\n${setupCode}}\n\nvoid loop() {\n${loopCode}}\n`;
+    };
+
+    generator.forBlock['led_set'] = function(block, generator) {
+        var rawVal = block.getFieldValue('options') || 'HIGH';
+        // Field name 'options' dropdown için otomatik isimdir genelde.
+        // Ama bazen karışabilir, basit çözüm olarak dropdown değerini doğrudan alalım:
+        // Eğer yukarıdaki çalışmazsa block.inputList üzerinden gideriz ama standart budur.
+        // Blok yapısına tekrar bakarsak dropdown ismi "options" değil, otomatik atanmış.
+        // Düzeltme:
+        var val = block.getField('options') ? block.getFieldValue('options') : 'HIGH';
+        // Daha güvenli yöntem:
+        var fields = block.inputList[0].fieldRow;
+        for(var i=0; i<fields.length; i++) {
+            if(fields[i] instanceof Blockly.FieldDropdown) {
+                val = fields[i].getValue();
+                break;
+            }
+        }
+        return `  digitalWrite(13, ${val});\n`;
+    };
+
+    generator.forBlock['delay_ms'] = function(block, generator) {
+        var ms = block.getFieldValue('MS');
+        return `  delay(${ms});\n`;
+    };
+
+    // 3. Çalışma Alanını Oluştur
+    workspace = Blockly.inject('blocklyDiv', {
+        toolbox: `
+        <xml>
+            <block type="arduino_base"></block>
+            <block type="led_set"></block>
+            <block type="delay_ms"></block>
+        </xml>`,
+        scrollbars: true,
+        trashcan: true,
+        theme: Blockly.Themes.Dark 
+    });
+
+    // Başlangıç bloğu
+    const startBlock = workspace.newBlock('arduino_base');
+    startBlock.initSvg();
+    startBlock.render();
+    startBlock.moveBy(50, 50);
+
+    // Değişiklikleri dinle
+    workspace.addChangeListener(() => {
+        const code = generator.workspaceToCode(workspace);
+        document.getElementById('generatedCode').value = code;
+    });
+}
+
+function transferAndCompile() {
+    const code = document.getElementById('generatedCode').value;
+    
+    const cppEditor = document.getElementById('cppEditor');
+    if(cppEditor) {
+        cppEditor.value = code;
+    }
+
+    const iotBtn = document.querySelector('.nav-btn[onclick*="iot"]');
+    if(iotBtn) showSection('iot', iotBtn);
+
+    setTimeout(() => {
+        compileCode();
+    }, 600);
 }
