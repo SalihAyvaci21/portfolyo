@@ -3,8 +3,21 @@
 body { font-family: 'Segoe UI', 'Roboto', sans-serif; background-color: var(--bg); color: var(--text); margin: 0; display: flex; min-height: 100vh; }
 a { text-decoration: none; color: inherit; }
 
-/* SIDEBAR */
-.sidebar { width: 260px; background: rgba(20, 20, 20, 0.95); border-right: 1px solid #333; padding: 30px 20px; display: flex; flex-direction: column; position: fixed; height: 100%; backdrop-filter: blur(10px); z-index: 10; }
+/* SIDEBAR - GÜNCELLENDİ (TIKLAMA SORUNU ÇÖZÜMÜ) */
+.sidebar { 
+    width: 260px; 
+    background: rgba(20, 20, 20, 0.95); 
+    border-right: 1px solid #333; 
+    padding: 30px 20px; 
+    display: flex; 
+    flex-direction: column; 
+    position: fixed; 
+    top: 0;
+    left: 0;
+    height: 100%; 
+    backdrop-filter: blur(10px); 
+    z-index: 9999; /* En üst katmanda olması garanti edildi */
+}
 .profile-img-container { width: 120px; height: 120px; margin: 0 auto 15px; position: relative; border-radius: 50%; padding: 3px; background: linear-gradient(45deg, var(--primary), var(--secondary)); box-shadow: 0 0 20px rgba(0, 255, 136, 0.3); }
 .profile-img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: #333; }
 .name { font-size: 1.2rem; font-weight: bold; margin-bottom: 5px; text-align: center; }
@@ -17,13 +30,21 @@ a { text-decoration: none; color: inherit; }
 .social-icon:hover { background: var(--primary); color: #000; transform: translateY(-3px); box-shadow: 0 0 10px var(--primary); }
 
 /* MAIN CONTENT */
-.main-content { margin-left: 300px; padding: 50px; flex: 1; max-width: 1200px; }
+.main-content { margin-left: 300px; padding: 50px; flex: 1; max-width: 1200px; position: relative; z-index: 1; }
 section { display: none; animation: fadeIn 0.6s ease; }
 section.active { display: block; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 h1 { font-size: 2.5rem; margin-bottom: 10px; text-shadow: 0 0 10px rgba(0,255,136,0.2); }
 h2 { border-left: 4px solid var(--primary); padding-left: 15px; margin: 30px 0 20px; }
 p { line-height: 1.6; color: var(--text-muted); }
+
+/* CV VE İLETİŞİM BUTONLARI (YENİ) */
+.cv-container { display: flex; gap: 15px; margin-top: 25px; margin-bottom: 35px; }
+.cv-btn, .contact-btn { display: inline-flex; align-items: center; gap: 10px; padding: 12px 25px; border-radius: 8px; font-weight: 600; font-size: 0.95rem; transition: all 0.3s ease; border: 1px solid transparent; }
+.cv-btn { background: rgba(0, 255, 136, 0.1); color: var(--primary); border-color: var(--primary); }
+.cv-btn:hover { background: var(--primary); color: #000; box-shadow: 0 0 20px rgba(0, 255, 136, 0.4); transform: translateY(-3px); }
+.contact-btn { background: rgba(112, 0, 255, 0.1); color: var(--secondary); border-color: var(--secondary); }
+.contact-btn:hover { background: var(--secondary); color: #fff; box-shadow: 0 0 20px rgba(112, 0, 255, 0.4); transform: translateY(-3px); }
 
 /* GRIDS & CARDS */
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 25px; }
@@ -69,52 +90,3 @@ p { line-height: 1.6; color: var(--text-muted); }
 .serial-btn.connect { background: var(--secondary); }
 .status-badge { font-size: 0.8rem; padding: 5px 10px; border-radius: 12px; background: #333; color: #aaa; display: flex; align-items: center; gap: 5px; }
 .status-badge.connected { color: #00ff88; background: rgba(0, 255, 136, 0.1); }
-
-
-/* --- CV VE İLETİŞİM BUTONLARI --- */
-.cv-container {
-    display: flex;
-    gap: 15px;
-    margin-top: 25px;
-    margin-bottom: 35px;
-}
-
-.cv-btn, .contact-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    padding: 12px 25px;
-    border-radius: 8px;
-    font-weight: 600;
-    font-size: 0.95rem;
-    transition: all 0.3s ease;
-    border: 1px solid transparent;
-}
-
-/* CV Butonu - Primary Renk (Yeşil) */
-.cv-btn {
-    background: rgba(0, 255, 136, 0.1);
-    color: var(--primary);
-    border-color: var(--primary);
-}
-
-.cv-btn:hover {
-    background: var(--primary);
-    color: #000;
-    box-shadow: 0 0 20px rgba(0, 255, 136, 0.4);
-    transform: translateY(-3px);
-}
-
-/* İletişim Butonu - Secondary Renk (Mor) Opsiyonel */
-.contact-btn {
-    background: rgba(112, 0, 255, 0.1);
-    color: var(--secondary);
-    border-color: var(--secondary);
-}
-
-.contact-btn:hover {
-    background: var(--secondary);
-    color: #fff;
-    box-shadow: 0 0 20px rgba(112, 0, 255, 0.4);
-    transform: translateY(-3px);
-}
