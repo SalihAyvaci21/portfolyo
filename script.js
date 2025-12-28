@@ -31,6 +31,11 @@ async function fetchGithubRepos() {
     const username = 'SalihAyvaci21';
     const container = document.getElementById('repos-container');
     if (!container) return;
+    const hiddenRepos = [
+        "SalihAyvaci21",    // Profil reposu
+        "portfolyo",        // Bu sitenin kendisi
+        "arduino-backend"   // Arka plan sunucu kodları
+    ];
     try {
         const response = await fetch(`https://api.github.com/users/${username}/repos?sort=pushed&direction=desc`);
         const repos = await response.json();
