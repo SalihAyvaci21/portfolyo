@@ -25,23 +25,28 @@ function showSection(id, btn) {
 }
 
 // ==========================================
-// 2. GITHUB REPO
+// 2. GITHUB REPO (FİLTRELİ - GÜNCELLENDİ)
 // ==========================================
 async function fetchGithubRepos() {
     const username = 'SalihAyvaci21';
     const container = document.getElementById('repos-container');
     if (!container) return;
+
+    // GİZLENECEK PROJELERİN LİSTESİ
     const hiddenRepos = [
         "SalihAyvaci21",    // Profil reposu
         "portfolyo",        // Bu sitenin kendisi
         "arduino-backend"   // Arka plan sunucu kodları
     ];
+
     try {
         const response = await fetch(`https://api.github.com/users/${username}/repos?sort=pushed&direction=desc`);
         const repos = await response.json();
         container.innerHTML = '';
         repos.forEach(repo => {
-            if (repo.name === "SalihAyvaci21") return;
+            // Filtreleme: İsim yasaklı listedeyse gösterme
+            if (hiddenRepos.includes(repo.name)) return;
+
             const lang = repo.language || 'Diğer';
             const desc = repo.description || 'Proje detayı yükleniyor...';
             container.innerHTML += `<div class="card"><div class="card-header"><h3><i class="fas fa-code-branch"></i> ${repo.name}</h3><a href="${repo.html_url}" target="_blank" class="repo-link"><i class="fas fa-external-link-alt"></i></a></div><p>${desc}</p><div class="tech-stack"><span class="tech-tag">${lang}</span><span class="tech-tag"><i class="far fa-star"></i> ${repo.stargazers_count}</span></div></div>`;
@@ -155,6 +160,7 @@ async function runQuickTest() {
         const response = await fetch('firmware.hex');
         if (!response.ok) throw new Error("firmware.hex bulunamadı");
         const hexText = await response.text();
+        
         btn.innerHTML = '<i class="fas fa-microchip"></i> Yükleniyor...';
         await runUploader(hexText);
         btn.innerHTML = originalText;
@@ -205,8 +211,6 @@ async function startReading() {
     isReading = true;
     const textDecoder = new TextDecoderStream();
     // Portun okunabilir akışını decoder'a yönlendiriyoruz.
-    // DİKKAT: readableStreamClosed promise'ini saklamıyoruz çünkü
-    // reader.cancel() çağrıldığında zincirleme kapanacak.
     try {
         const readableStreamClosed = serialPort.readable.pipeTo(textDecoder.writable);
         serialReader = textDecoder.readable.getReader();
@@ -223,7 +227,6 @@ async function startReading() {
             }
         }
     } catch (error) {
-        // Port kapandığında buraya düşmesi normaldir.
         console.log("Okuma sonlandı:", error);
     } finally {
         if(serialReader) serialReader.releaseLock();
@@ -241,7 +244,6 @@ async function disconnectSerial(silent = false) {
         // 1. Önce Okuyucuyu (Reader) İptal Et
         if (serialReader) {
             await serialReader.cancel(); 
-            // cancel() işlemi startReading döngüsünü bitirir ve releaseLock() orada çağrılır.
             serialReader = null;
         }
 
