@@ -46,6 +46,55 @@ p { line-height: 1.6; color: var(--text-muted); }
 .contact-btn { background: rgba(112, 0, 255, 0.1); color: var(--secondary); border-color: var(--secondary); }
 .contact-btn:hover { background: var(--secondary); color: #fff; box-shadow: 0 0 20px rgba(112, 0, 255, 0.4); transform: translateY(-3px); }
 
+/* SOSYAL MEDYA BUTONLARI (HAKKIMDA SAYFASI İÇİN) */
+.about-social {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 35px;
+    flex-wrap: wrap;
+}
+
+.social-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 20px;
+    border-radius: 50px; /* Yuvarlak hatlar */
+    font-weight: 500;
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    color: #ccc;
+}
+
+.social-pill:hover {
+    transform: translateY(-3px);
+    color: #fff;
+}
+
+/* GitHub Marka Rengi */
+.social-pill.github:hover {
+    border-color: #fff;
+    background: #24292e;
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+}
+
+/* LinkedIn Marka Rengi */
+.social-pill.linkedin:hover {
+    border-color: #0077b5;
+    background: #0077b5;
+    box-shadow: 0 0 15px rgba(0, 119, 181, 0.4);
+}
+
+/* Instagram Marka Rengi (Degrade) */
+.social-pill.instagram:hover {
+    border: 1px solid transparent;
+    background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+    box-shadow: 0 0 15px rgba(220, 39, 67, 0.4);
+}
+
 /* GRIDS & CARDS */
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 25px; }
 .card { background: var(--card-bg); border: 1px solid #333; border-radius: 16px; padding: 25px; transition: 0.3s; position: relative; display: flex; flex-direction: column; height: 100%; }
