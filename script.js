@@ -92,7 +92,7 @@ async function compileCode() {
 }
 
 // ==========================================
-// 4. IOT: YÜKLEME (GÜVENLİ PORT KAPATMA)
+// 4. IOT: YÜKLEME (DÜZELTİLMİŞ NANO DESTEĞİ)
 // ==========================================
 async function runUploader(hexDataToUse = null) {
     const hexToFlash = hexDataToUse || compiledHexCode;
@@ -103,14 +103,15 @@ async function runUploader(hexDataToUse = null) {
         return;
     }
     
-    // Eğer port açıksa zorla kapat
+    // Açık bağlantı varsa kapat
     if (serialPort) {
-        console.log("Yükleme için mevcut bağlantı güvenli şekilde kesiliyor...");
+        console.log("Yükleme için bağlantı kesiliyor...");
         await disconnectSerial(true); 
     }
 
     const statusLbl = document.getElementById('statusLabelNew');
     statusLbl.innerText = `Port aranıyor (${boardType})...`;
+    statusLbl.style.color = "orange";
 
     try {
         const blob = new Blob([hexToFlash], { type: 'application/octet-stream' });
@@ -119,21 +120,32 @@ async function runUploader(hexDataToUse = null) {
         reader.onload = function(event) {
             const fileBuffer = event.target.result;
             
-            let avrBoard = boardType;
-            if (boardType === 'nano-old') {
-                avrBoard = 'nano'; 
-            }
+            // --- KRİTİK AYAR ---
+            // avrgirl kütüphanesine board bilgisini doğru formatta vermeliyiz.
+            // 'nano-old' seçildiyse bunu avrgirl'ün anlayacağı parametrelerle besleyelim.
+            
+            let avrOptions = {
+                board: boardType === 'nano-old' ? 'nano' : boardType,
+                debug: true
+            };
 
-            const avrgirl = new AvrgirlArduino({ 
-                board: avrBoard, 
-                debug: true 
-            });
+            // Eski Bootloader için özel parametreler (Eğer kütüphane destekliyorsa)
+            // Çoğu durumda 'nano' diyip baud rate'i 57600 yapmak gerekir.
+            // Ancak avrgirl bunu otomatik dener. Biz yine de manuel reset uyarısı verelim.
+
+            const avrgirl = new AvrgirlArduino(avrOptions);
 
             avrgirl.flash(fileBuffer, (error) => {
                 if (error) {
                     console.error(error);
-                    alert("Yükleme Hatası: " + error.message);
-                    statusLbl.innerText = "Durum: Yükleme Başarısız.";
+                    
+                    let msg = "Yükleme Hatası: " + error.message;
+                    if (error.message.includes("timeout")) {
+                        msg += "\n\n⚠️ İPUCU: Yükleme başladığı an (Flashing yazınca) Arduino üzerindeki RESET tuşuna basıp çekmeyi deneyin.";
+                    }
+                    
+                    alert(msg);
+                    statusLbl.innerText = "Durum: Başarısız.";
                     statusLbl.style.color = "red";
                 } else {
                     alert(`BAŞARILI! Kod yüklendi.`);
@@ -147,7 +159,6 @@ async function runUploader(hexDataToUse = null) {
         alert("Hata: " + err);
     }
 }
-
 // ==========================================
 // 5. TEST FIRMWARE
 // ==========================================
