@@ -92,11 +92,11 @@ async function compileCode() {
 }
 
 // ==========================================
-// 4. IOT: YÜKLEME (DÜZELTİLMİŞ NANO DESTEĞİ)
+// 4. IOT: YÜKLEME (UNO İÇİN STABİL)
 // ==========================================
 async function runUploader(hexDataToUse = null) {
     const hexToFlash = hexDataToUse || compiledHexCode;
-    let boardType = document.getElementById('boardSelect').value;
+    const boardType = document.getElementById('boardSelect').value;
 
     if (!hexToFlash) {
         alert("Önce kodu derlemelisiniz!");
@@ -110,7 +110,7 @@ async function runUploader(hexDataToUse = null) {
     }
 
     const statusLbl = document.getElementById('statusLabelNew');
-    statusLbl.innerText = `Port aranıyor (${boardType})...`;
+    statusLbl.innerText = `Port aranıyor (${boardType})... Lütfen USB Serial seçin.`;
     statusLbl.style.color = "orange";
 
     try {
@@ -120,35 +120,20 @@ async function runUploader(hexDataToUse = null) {
         reader.onload = function(event) {
             const fileBuffer = event.target.result;
             
-            // --- KRİTİK AYAR ---
-            // avrgirl kütüphanesine board bilgisini doğru formatta vermeliyiz.
-            // 'nano-old' seçildiyse bunu avrgirl'ün anlayacağı parametrelerle besleyelim.
-            
-            let avrOptions = {
-                board: boardType === 'nano-old' ? 'nano' : boardType,
-                debug: true
-            };
-
-            // Eski Bootloader için özel parametreler (Eğer kütüphane destekliyorsa)
-            // Çoğu durumda 'nano' diyip baud rate'i 57600 yapmak gerekir.
-            // Ancak avrgirl bunu otomatik dener. Biz yine de manuel reset uyarısı verelim.
-
-            const avrgirl = new AvrgirlArduino(avrOptions);
+            // Uno için ekstra ayara gerek yok, sadece board ismini veriyoruz.
+            const avrgirl = new AvrgirlArduino({ 
+                board: boardType, // 'uno' olmalı
+                debug: true 
+            });
 
             avrgirl.flash(fileBuffer, (error) => {
                 if (error) {
                     console.error(error);
-                    
-                    let msg = "Yükleme Hatası: " + error.message;
-                    if (error.message.includes("timeout")) {
-                        msg += "\n\n⚠️ İPUCU: Yükleme başladığı an (Flashing yazınca) Arduino üzerindeki RESET tuşuna basıp çekmeyi deneyin.";
-                    }
-                    
-                    alert(msg);
+                    alert("Yükleme Hatası: " + error.message + "\n\nOlası Sebepler:\n1. Yanlış Port seçtiniz (Bluetooth değil USB seçin).\n2. Arduino IDE arkada açık (Kapatın).\n3. CH340 Driver yüklü değil.");
                     statusLbl.innerText = "Durum: Başarısız.";
                     statusLbl.style.color = "red";
                 } else {
-                    alert(`BAŞARILI! Kod yüklendi.`);
+                    alert(`BAŞARILI! Kod Uno'ya yüklendi.`);
                     statusLbl.innerText = "Durum: Yüklendi.";
                     statusLbl.style.color = "#00e676";
                 }
