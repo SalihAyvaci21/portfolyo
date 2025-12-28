@@ -5,8 +5,9 @@ let compiledHexCode = null;
 let serialPort = null;
 let serialWriter = null;
 let serialReader = null;
-let isReading = false; // Okuma döngüsü kontrolü
+let isReading = false; 
 let blinkInterval = null;
+let portClosing = false; // Port kapanıyor mu kontrolü
 
 // ==========================================
 // 1. NAVİGASYON
@@ -97,10 +98,12 @@ async function runUploader(hexDataToUse = null) {
 
     if (!hexToFlash) return alert("Önce kodu derlemelisiniz!");
 
-    // --- MANTIKLI AKIŞ: Eğer bağlıysa, önce bağlantıyı kes ---
+    // --- ÖNEMLİ: Bağlantıyı KESMEDEN Yükleme Yapılamaz ---
     if (serialPort) {
-        console.log("Yükleme öncesi mevcut bağlantı kesiliyor...");
-        await disconnectSerial(true); // true = sessiz mod
+        console.log("Yükleme için port kapatılıyor...");
+        await disconnectSerial(true);
+        // Portun kapanması için kısa bir süre tanı
+        await new Promise(r => setTimeout(r, 500));
     }
 
     const statusLbl = document.getElementById('statusLabelNew');
@@ -114,7 +117,6 @@ async function runUploader(hexDataToUse = null) {
         reader.onload = function(event) {
             const fileBuffer = event.target.result;
             
-            // Uno için stabil ayar
             const avrgirl = new AvrgirlArduino({ 
                 board: boardType === 'nano-old' ? 'nano' : boardType, 
                 debug: true 
@@ -127,11 +129,9 @@ async function runUploader(hexDataToUse = null) {
                     statusLbl.innerText = "Durum: Başarısız.";
                     statusLbl.style.color = "red";
                 } else {
-                    alert(`BAŞARILI! Kod yüklendi.\n\nSimdi tekrar 'Bağlan' butonuna basarak kontrol edebilirsiniz.`);
+                    alert(`BAŞARILI! Kod yüklendi.`);
                     statusLbl.innerText = "Durum: Yüklendi - Bağlantı Bekleniyor.";
                     statusLbl.style.color = "#00e676";
-                    
-                    // UI Temizliği: Bağlantı kesilmiş durumda göster
                     updateUIIDisconnected();
                 }
             });
@@ -142,23 +142,17 @@ async function runUploader(hexDataToUse = null) {
     }
 }
 
-// ==========================================
-// 5. TEST FIRMWARE
-// ==========================================
 async function runQuickTest() {
     const btn = document.getElementById('btnQuickTest');
     const originalText = btn.innerHTML;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> İndiriliyor...';
-    
     try {
         const response = await fetch('firmware.hex');
         if (!response.ok) throw new Error("firmware.hex bulunamadı");
         const hexText = await response.text();
-        
         btn.innerHTML = '<i class="fas fa-microchip"></i> Yükleniyor...';
         await runUploader(hexText);
         btn.innerHTML = originalText;
-
     } catch (err) {
         alert("Hata: " + err.message);
         btn.innerHTML = originalText;
@@ -176,15 +170,15 @@ async function connectSerial() {
         serialPort = await navigator.serial.requestPort();
         await serialPort.open({ baudRate: 115200 });
 
-        // Yazıcıyı oluştur
+        // WRITER KURULUMU
         const textEncoder = new TextEncoderStream();
         const writableStreamClosed = textEncoder.readable.pipeTo(serialPort.writable);
         serialWriter = textEncoder.writable.getWriter();
 
-        // Okuyucuyu başlat (Bağlantının kopup kopmadığını anlamak için şart)
+        // READER KURULUMU
         startReading();
 
-        // UI Güncelle
+        // UI GÜNCELLEME
         const badge = document.getElementById('statusBadge');
         if(badge) {
             badge.innerHTML = '<i class="fas fa-circle" style="color:#00e676; font-size:0.6rem;"></i> Bağlandı';
@@ -193,72 +187,79 @@ async function connectSerial() {
         document.getElementById('serialConsole').innerHTML += "<br>> <span style='color:#0f0'>Bağlantı Kuruldu!</span>";
         document.getElementById('btnConnect').style.display = 'none';
         document.getElementById('btnDisconnect').style.display = 'inline-flex';
+        portClosing = false;
 
     } catch (err) { 
         console.error(err);
         alert("Bağlantı Hatası: " + err); 
-        // Hata durumunda temizle
-        if(serialPort) disconnectSerial(true);
+        serialPort = null;
     }
 }
 
-// Okuma döngüsü - Portun açık kalmasını ve veri gelirse konsola yazmasını sağlar
 async function startReading() {
     isReading = true;
+    const textDecoder = new TextDecoderStream();
+    // Portun okunabilir akışını decoder'a yönlendiriyoruz.
+    // DİKKAT: readableStreamClosed promise'ini saklamıyoruz çünkü
+    // reader.cancel() çağrıldığında zincirleme kapanacak.
     try {
-        const textDecoder = new TextDecoderStream();
         const readableStreamClosed = serialPort.readable.pipeTo(textDecoder.writable);
         serialReader = textDecoder.readable.getReader();
 
         while (true) {
             const { value, done } = await serialReader.read();
             if (done) {
-                // Okuyucu kapandı
+                // Okuyucu serbest bırakıldı
                 break;
             }
             if (value) {
-                // Gelen veriyi konsola ekle (Opsiyonel)
-                // console.log("Gelen:", value); 
+                // Gelen veriyi buraya yazabilirsin
+                // console.log(value); 
             }
         }
     } catch (error) {
-        console.log("Okuma Hatası (Port kopmuş olabilir):", error);
+        // Port kapandığında buraya düşmesi normaldir.
+        console.log("Okuma sonlandı:", error);
     } finally {
-        serialReader.releaseLock();
+        if(serialReader) serialReader.releaseLock();
     }
 }
 
-// En önemli fonksiyon: Her şeyi güvenle kapatır
+// --- KRİTİK FONKSİYON: BAĞLANTI KESME ---
 async function disconnectSerial(silent = false) {
-    // 1. Blink durdur
+    if (portClosing) return; // Zaten kapanıyorsa tekrar tetikleme
+    portClosing = true;
+
     if(blinkInterval) { clearInterval(blinkInterval); blinkInterval = null; }
 
     try {
-        // 2. Okumayı durdur ve kilidi çöz
+        // 1. Önce Okuyucuyu (Reader) İptal Et
         if (serialReader) {
-            await serialReader.cancel(); // Bu işlem startReading döngüsünü 'done' yapar
-            // releaseLock startReading'in finally bloğunda yapılır
+            await serialReader.cancel(); 
+            // cancel() işlemi startReading döngüsünü bitirir ve releaseLock() orada çağrılır.
             serialReader = null;
         }
 
-        // 3. Yazmayı durdur ve kilidi çöz
+        // 2. Yazıcıyı (Writer) Serbest Bırak
         if (serialWriter) {
             await serialWriter.releaseLock();
             serialWriter = null;
         }
 
-        // 4. Portu kapat
+        // 3. Portu Kapat
         if (serialPort) {
             await serialPort.close();
             serialPort = null;
         }
-    } catch(e) {
-        console.log("Port kapatılırken önemsiz hata:", e);
-        // Hata olsa bile değişkenleri zorla sıfırla
+    } catch (e) {
+        console.error("Port kapatma hatası (Zorla sıfırlanıyor):", e);
+        // Hata olsa bile değişkenleri sıfırla ki kilitli kalmasın
         serialPort = null;
         serialWriter = null;
         serialReader = null;
     }
+
+    portClosing = false;
 
     if(!silent) {
         updateUIIDisconnected();
@@ -304,7 +305,6 @@ async function runBlock(command) {
 // ==========================================
 // 7. OYUNLAR (DEĞİŞİKLİK YOK)
 // ==========================================
-// ... (Burada mevcut oyun kodların - Snake, Tetris vb. aynen kalacak) ...
 let canvas = document.getElementById('gameCanvas');
 let ctx = canvas ? canvas.getContext('2d') : null;
 let gameInterval, currentGame, score = 0;
@@ -372,6 +372,9 @@ function initSnake() {
         ctx.fillStyle = '#000'; ctx.fillRect(0, 0, 400, 400);
         ctx.fillStyle = '#ff0055'; ctx.fillRect(apple.x * 20, apple.y * 20, 18, 18);
         ctx.fillStyle = '#00ff88'; for (let p of snake) ctx.fillRect(p.x * 20, p.y * 20, 18, 18);
+        ctx.strokeStyle = '#111'; ctx.beginPath();
+        for(let i=0; i<400; i+=20) { ctx.moveTo(i,0); ctx.lineTo(i,400); ctx.moveTo(0,i); ctx.lineTo(400,i); }
+        ctx.stroke();
     }, 100);
 }
 function initTetris() {
@@ -418,17 +421,461 @@ function initBreakout() {
 // ==========================================
 // 8. BLOCKLY ENTEGRASYONU (MEGA BAŞLANGIÇ KİTİ VERSİYONU)
 // ==========================================
-// ... Buradaki initBlockly ve transferAndCompile fonksiyonları 
-// önceki cevabımdaki gibi aynen kalacak (kısaltmak için buraya yazmıyorum)
-// Lütfen önceki script.js içeriğindeki Blockly kısmını buraya dahil et.
 let workspace = null;
+
 function initBlockly() {
     if (workspace) return; 
-    Blockly.defineBlocksWithJsonArray([ { "type": "arduino_base", "message0": "Arduino Başlat %1 %2", "args0": [ {"type": "input_dummy"}, {"type": "input_statement", "name": "LOOP"} ], "colour": 120 } ]);
-    // (Not: Buraya tam blok tanımlarını eklemeyi unutma)
+
+    // ---------------------------------------------------------
+    // A. BLOK TANIMLARI (JSON)
+    // ---------------------------------------------------------
+    Blockly.defineBlocksWithJsonArray([
+        // --- TEMEL ---
+        {
+            "type": "arduino_base",
+            "message0": "Arduino Başlat %1 Kurulum (Setup) %2 %3 Ana Döngü (Loop) %4 %5",
+            "args0": [
+                { "type": "input_dummy" },
+                { "type": "input_statement", "name": "SETUP" },
+                { "type": "input_dummy" },
+                { "type": "input_statement", "name": "LOOP" },
+                { "type": "input_dummy" }
+            ],
+            "colour": 120, "tooltip": "Ana yapı"
+        },
+        {
+            "type": "delay_ms",
+            "message0": "%1 ms bekle",
+            "args0": [{ "type": "field_number", "name": "MS", "value": 1000 }],
+            "previousStatement": null, "nextStatement": null, "colour": 160
+        },
+        {
+            "type": "serial_print",
+            "message0": "Seri Port Yaz (Satır Atla: %1) Mesaj: %2",
+            "args0": [
+                { "type": "field_checkbox", "name": "NEWLINE", "checked": true },
+                { "type": "input_value", "name": "MSG" }
+            ],
+            "previousStatement": null, "nextStatement": null, "colour": 160
+        },
+        {
+            "type": "text_string",
+            "message0": "\"%1\"",
+            "args0": [{ "type": "field_input", "name": "TXT", "text": "Merhaba" }],
+            "output": "String", "colour": 160
+        },
+
+        // --- ÇIKIŞLAR (LED, RÖLE, BUZZER) ---
+        {
+            "type": "digital_write",
+            "message0": "Dijital Yaz (Pin %1) Durum: %2",
+            "args0": [
+                { "type": "field_dropdown", "name": "PIN", "options": [["2","2"],["3","3"],["4","4"],["5","5"],["6","6"],["7","7"],["8","8"],["9","9"],["10","10"],["11","11"],["12","12"],["13","13"]] },
+                { "type": "field_dropdown", "name": "STATE", "options": [["YAK (HIGH)", "HIGH"], ["SÖNDÜR (LOW)", "LOW"]] }
+            ],
+            "previousStatement": null, "nextStatement": null, "colour": 230
+        },
+        {
+            "type": "analog_write",
+            "message0": "PWM/Analog Yaz (Pin %1) Değer (0-255): %2",
+            "args0": [
+                { "type": "field_dropdown", "name": "PIN", "options": [["3","3"],["5","5"],["6","6"],["9","9"],["10","10"],["11","11"]] },
+                { "type": "input_value", "name": "VAL", "check": "Number" }
+            ],
+            "previousStatement": null, "nextStatement": null, "colour": 230
+        },
+        {
+            "type": "rgb_led",
+            "message0": "RGB LED Renk Ayarla Kırmızı Pin: %1 Yeşil Pin: %2 Mavi Pin: %3",
+            "args0": [
+                { "type": "field_dropdown", "name": "PIN_R", "options": [["9","9"],["3","3"]] },
+                { "type": "field_dropdown", "name": "PIN_G", "options": [["10","10"],["5","5"]] },
+                { "type": "field_dropdown", "name": "PIN_B", "options": [["11","11"],["6","6"]] }
+            ],
+            "message1": "R: %1 G: %2 B: %3",
+            "args1": [
+                { "type": "input_value", "name": "VAL_R", "check": "Number" },
+                { "type": "input_value", "name": "VAL_G", "check": "Number" },
+                { "type": "input_value", "name": "VAL_B", "check": "Number" }
+            ],
+            "previousStatement": null, "nextStatement": null, "colour": 230
+        },
+        {
+            "type": "buzzer_tone",
+            "message0": "Buzzer Çal (Pin %1) Frekans: %2 Hz Süre: %3 ms",
+            "args0": [
+                { "type": "field_dropdown", "name": "PIN", "options": [["8","8"],["2","2"],["3","3"]] },
+                { "type": "input_value", "name": "FREQ", "check": "Number" },
+                { "type": "input_value", "name": "DUR", "check": "Number" }
+            ],
+            "previousStatement": null, "nextStatement": null, "colour": 230
+        },
+
+        // --- MOTORLAR ---
+        {
+            "type": "servo_move",
+            "message0": "Servo Motor (Pin %1) Açı (0-180): %2",
+            "args0": [
+                { "type": "field_dropdown", "name": "PIN", "options": [["9","9"],["10","10"],["3","3"],["5","5"]] },
+                { "type": "input_value", "name": "DEGREE", "check": "Number" }
+            ],
+            "previousStatement": null, "nextStatement": null, "colour": 300
+        },
+
+        // --- GİRİŞLER (BUTON, POT, SENSÖRLER) ---
+        {
+            "type": "digital_read",
+            "message0": "Dijital Oku (Pin %1)",
+            "args0": [{ "type": "field_dropdown", "name": "PIN", "options": [["2","2"],["3","3"],["4","4"],["7","7"],["8","8"]] }],
+            "output": "Number", "colour": 180
+        },
+        {
+            "type": "analog_read",
+            "message0": "Analog Oku (Pin %1)",
+            "args0": [{ "type": "field_dropdown", "name": "PIN", "options": [["A0","A0"],["A1","A1"],["A2","A2"],["A3","A3"],["A4","A4"],["A5","A5"]] }],
+            "output": "Number", "colour": 180
+        },
+        
+        // --- GELİŞMİŞ SENSÖRLER (Kütüphaneli) ---
+        {
+            "type": "sensor_ultrasonic",
+            "message0": "Mesafe Sensörü (HC-SR04) Trig: %1 Echo: %2",
+            "args0": [
+                { "type": "field_dropdown", "name": "TRIG", "options": [["2","2"],["3","3"],["4","4"],["7","7"]] },
+                { "type": "field_dropdown", "name": "ECHO", "options": [["3","3"],["2","2"],["5","5"],["8","8"]] }
+            ],
+            "output": "Number", "colour": 180, "tooltip": "Mesafeyi cm cinsinden ölçer"
+        },
+        {
+            "type": "sensor_dht11",
+            "message0": "DHT11 Sensörü (Pin %1) %2 Oku",
+            "args0": [
+                { "type": "field_dropdown", "name": "PIN", "options": [["2","2"],["3","3"],["4","4"],["7","7"]] },
+                { "type": "field_dropdown", "name": "TYPE", "options": [["Sıcaklık (C)","temp"],["Nem (%)","hum"]] }
+            ],
+            "output": "Number", "colour": 180
+        },
+        {
+            "type": "sensor_pir",
+            "message0": "PIR Hareket Sensörü (Pin %1) Hareket Var mı?",
+            "args0": [{ "type": "field_dropdown", "name": "PIN", "options": [["2","2"],["3","3"],["4","4"],["7","7"]] }],
+            "output": "Boolean", "colour": 180
+        },
+        
+        // --- BASİT SENSÖRLER (Analog/Dijital Sarmalayıcılar) ---
+        {
+            "type": "sensor_ldr",
+            "message0": "LDR Işık Sensörü Oku (Pin %1)",
+            "args0": [{ "type": "field_dropdown", "name": "PIN", "options": [["A0","A0"],["A1","A1"]] }],
+            "output": "Number", "colour": 180
+        },
+        {
+            "type": "sensor_soil",
+            "message0": "Toprak Nem Sensörü Oku (Pin %1)",
+            "args0": [{ "type": "field_dropdown", "name": "PIN", "options": [["A0","A0"],["A1","A1"],["A2","A2"]] }],
+            "output": "Number", "colour": 180
+        },
+        {
+            "type": "sensor_rain",
+            "message0": "Yağmur Sensörü Oku (Pin %1)",
+            "args0": [{ "type": "field_dropdown", "name": "PIN", "options": [["A0","A0"],["A1","A1"]] }],
+            "output": "Number", "colour": 180
+        },
+        {
+            "type": "sensor_sound",
+            "message0": "Ses Sensörü Oku (Pin %1)",
+            "args0": [{ "type": "field_dropdown", "name": "PIN", "options": [["A0","A0"],["A1","A1"]] }],
+            "output": "Number", "colour": 180
+        },
+        {
+            "type": "sensor_gas",
+            "message0": "Gaz Sensörü (MQ-2) Oku (Pin %1)",
+            "args0": [{ "type": "field_dropdown", "name": "PIN", "options": [["A0","A0"],["A1","A1"]] }],
+            "output": "Number", "colour": 180
+        },
+
+        // --- EKRAN ---
+        {
+            "type": "lcd_i2c_init",
+            "message0": "LCD Ekranı (I2C) Başlat",
+            "previousStatement": null, "nextStatement": null, "colour": 60, "tooltip": "Setup içine koyun. Adres: 0x27"
+        },
+        {
+            "type": "lcd_i2c_print",
+            "message0": "LCD Yaz (Satır: %1, Sütun: %2) Mesaj: %3",
+            "args0": [
+                { "type": "field_dropdown", "name": "ROW", "options": [["0 (Üst)","0"],["1 (Alt)","1"]] },
+                { "type": "field_number", "name": "COL", "value": 0, "min": 0, "max": 15 },
+                { "type": "input_value", "name": "MSG" }
+            ],
+            "previousStatement": null, "nextStatement": null, "colour": 60
+        },
+        {
+            "type": "lcd_i2c_clear",
+            "message0": "LCD Ekranı Temizle",
+            "previousStatement": null, "nextStatement": null, "colour": 60
+        },
+
+        // --- MATEMATİK & MANTIK ---
+        {
+            "type": "math_number",
+            "message0": "%1",
+            "args0": [{ "type": "field_number", "name": "NUM", "value": 0 }],
+            "output": "Number", "colour": 210
+        },
+        {
+            "type": "logic_compare_custom",
+            "message0": "%1 %2 %3",
+            "args0": [
+                { "type": "input_value", "name": "A" },
+                { "type": "field_dropdown", "name": "OP", "options": [["=","=="],["≠","!="],["<","<"],[">",">"]] },
+                { "type": "input_value", "name": "B" }
+            ],
+            "output": "Boolean", "colour": 210
+        },
+        {
+            "type": "controls_if_custom",
+            "message0": "Eğer %1 ise",
+            "args0": [{ "type": "input_value", "name": "IF0", "check": "Boolean" }],
+            "message1": "Yap %1",
+            "args1": [{ "type": "input_statement", "name": "DO0" }],
+            "previousStatement": null, "nextStatement": null, "colour": 210
+        }
+    ]);
+
+    // ---------------------------------------------------------
+    // B. C++ GENERATOR MANTIĞI
+    // ---------------------------------------------------------
     const generator = new Blockly.Generator('ARDUINO');
-    generator.forBlock['arduino_base'] = function(block) { return `void setup(){}\nvoid loop(){}\n`; };
-    workspace = Blockly.inject('blocklyDiv', { toolbox: `<xml><block type="arduino_base"></block></xml>`, theme: Blockly.Themes.Dark });
+    
+    // Global depolar (Kütüphaneler ve Setup kodları için)
+    generator.definitions_ = {};
+    generator.setups_ = {};
+
+    // Blok bağlama mantığı
+    generator.scrub_ = function(block, code) {
+        const nextBlock = block.nextConnection && block.nextConnection.targetBlock();
+        const nextCode = generator.blockToCode(nextBlock);
+        return code + nextCode;
+    };
+
+    // --- TEMEL ---
+    generator.forBlock['arduino_base'] = function(block, generator) {
+        var setupCode = generator.statementToCode(block, 'SETUP');
+        var loopCode = generator.statementToCode(block, 'LOOP');
+        
+        var autoSetup = "";
+        for (var key in generator.setups_) autoSetup += generator.setups_[key] + "\n";
+        var definitions = "";
+        for (var key in generator.definitions_) definitions += generator.definitions_[key] + "\n";
+
+        return `${definitions}\nvoid setup() {\n  Serial.begin(115200);\n${autoSetup}${setupCode}}\n\nvoid loop() {\n${loopCode}}\n`;
+    };
+    generator.forBlock['delay_ms'] = function(block) {
+        return `  delay(${block.getFieldValue('MS')});\n`;
+    };
+    generator.forBlock['serial_print'] = function(block, generator) {
+        var msg = generator.valueToCode(block, 'MSG', 0) || '""';
+        var nl = block.getFieldValue('NEWLINE') === 'TRUE';
+        return `  Serial.print${nl ? 'ln' : ''}(${msg});\n`;
+    };
+    generator.forBlock['text_string'] = function(block) {
+        return [`"${block.getFieldValue('TXT')}"`, 0];
+    };
+
+    // --- ÇIKIŞLAR ---
+    generator.forBlock['digital_write'] = function(block) {
+        var pin = block.getFieldValue('PIN');
+        generator.setups_['pin_'+pin] = `  pinMode(${pin}, OUTPUT);`;
+        return `  digitalWrite(${pin}, ${block.getFieldValue('STATE')});\n`;
+    };
+    generator.forBlock['analog_write'] = function(block, generator) {
+        var pin = block.getFieldValue('PIN');
+        var val = generator.valueToCode(block, 'VAL', 0) || '0';
+        generator.setups_['pin_'+pin] = `  pinMode(${pin}, OUTPUT);`;
+        return `  analogWrite(${pin}, ${val});\n`;
+    };
+    generator.forBlock['rgb_led'] = function(block, generator) {
+        var r = block.getFieldValue('PIN_R'); var g = block.getFieldValue('PIN_G'); var b = block.getFieldValue('PIN_B');
+        var vr = generator.valueToCode(block, 'VAL_R', 0) || '0';
+        var vg = generator.valueToCode(block, 'VAL_G', 0) || '0';
+        var vb = generator.valueToCode(block, 'VAL_B', 0) || '0';
+        generator.setups_['pin_'+r] = `  pinMode(${r}, OUTPUT);`;
+        generator.setups_['pin_'+g] = `  pinMode(${g}, OUTPUT);`;
+        generator.setups_['pin_'+b] = `  pinMode(${b}, OUTPUT);`;
+        return `  analogWrite(${r}, ${vr}); analogWrite(${g}, ${vg}); analogWrite(${b}, ${vb});\n`;
+    };
+    generator.forBlock['buzzer_tone'] = function(block, generator) {
+        var pin = block.getFieldValue('PIN');
+        var freq = generator.valueToCode(block, 'FREQ', 0) || '1000';
+        var dur = generator.valueToCode(block, 'DUR', 0) || '500';
+        generator.setups_['pin_'+pin] = `  pinMode(${pin}, OUTPUT);`;
+        return `  tone(${pin}, ${freq}, ${dur});\n`;
+    };
+
+    // --- MOTORLAR ---
+    generator.forBlock['servo_move'] = function(block, generator) {
+        var pin = block.getFieldValue('PIN');
+        var deg = generator.valueToCode(block, 'DEGREE', 0) || '90';
+        generator.definitions_['inc_servo'] = '#include <Servo.h>';
+        generator.definitions_['var_servo'+pin] = `Servo servo_${pin};`;
+        generator.setups_['setup_servo'+pin] = `  servo_${pin}.attach(${pin});`;
+        return `  servo_${pin}.write(${deg});\n`;
+    };
+
+    // --- GİRİŞLER ---
+    generator.forBlock['digital_read'] = function(block) {
+        var pin = block.getFieldValue('PIN');
+        generator.setups_['pin_'+pin] = `  pinMode(${pin}, INPUT);`;
+        return [`digitalRead(${pin})`, 0];
+    };
+    generator.forBlock['analog_read'] = function(block) {
+        return [`analogRead(${block.getFieldValue('PIN')})`, 0];
+    };
+
+    // --- GELİŞMİŞ SENSÖRLER (KÜTÜPHANELİ) ---
+    generator.forBlock['sensor_ultrasonic'] = function(block) {
+        var trig = block.getFieldValue('TRIG');
+        var echo = block.getFieldValue('ECHO');
+        // NewPing Kütüphanesi Kullanımı
+        generator.definitions_['inc_newping'] = '#include <NewPing.h>';
+        // Tekil değişken adı oluşturmak lazım
+        var varName = `sonar_${trig}_${echo}`;
+        generator.definitions_['var_'+varName] = `NewPing ${varName}(${trig}, ${echo}, 200);`; // Max 200cm
+        return [`${varName}.ping_cm()`, 0];
+    };
+    
+    generator.forBlock['sensor_dht11'] = function(block) {
+        var pin = block.getFieldValue('PIN');
+        var type = block.getFieldValue('TYPE'); // temp or hum
+        generator.definitions_['inc_dht'] = '#include <DHT.h>';
+        generator.definitions_['var_dht'+pin] = `DHT dht_${pin}(${pin}, DHT11);`;
+        generator.setups_['setup_dht'+pin] = `  dht_${pin}.begin();`;
+        var func = type === 'temp' ? 'readTemperature()' : 'readHumidity()';
+        return [`dht_${pin}.${func}`, 0];
+    };
+
+    generator.forBlock['sensor_pir'] = function(block) {
+        var pin = block.getFieldValue('PIN');
+        generator.setups_['pin_'+pin] = `  pinMode(${pin}, INPUT);`;
+        return [`digitalRead(${pin})`, 0]; // Boolean döner
+    };
+
+    // --- BASİT SENSÖRLER (Sarmalayıcılar) ---
+    // Hepsi aslında analogRead'dir, sadece kullanıcı için isimlendirdik
+    var simpleAnalogSensors = ['sensor_ldr', 'sensor_soil', 'sensor_rain', 'sensor_sound', 'sensor_gas'];
+    simpleAnalogSensors.forEach(s => {
+        generator.forBlock[s] = function(block) {
+            return [`analogRead(${block.getFieldValue('PIN')})`, 0];
+        };
+    });
+
+    // --- EKRAN (LCD I2C) ---
+    generator.forBlock['lcd_i2c_init'] = function(block) {
+        generator.definitions_['inc_lcd'] = '#include <LiquidCrystal_I2C.h>';
+        generator.definitions_['var_lcd'] = 'LiquidCrystal_I2C lcd(0x27, 16, 2);';
+        return `  lcd.init();\n  lcd.backlight();\n`;
+    };
+    generator.forBlock['lcd_i2c_print'] = function(block, generator) {
+        var row = block.getFieldValue('ROW');
+        var col = block.getFieldValue('COL');
+        var msg = generator.valueToCode(block, 'MSG', 0) || '""';
+        return `  lcd.setCursor(${col}, ${row});\n  lcd.print(${msg});\n`;
+    };
+    generator.forBlock['lcd_i2c_clear'] = function() { return `  lcd.clear();\n`; };
+
+    // --- MATEMATİK & MANTIK ---
+    generator.forBlock['math_number'] = function(block) { return [String(block.getFieldValue('NUM')), 0]; };
+    generator.forBlock['logic_compare_custom'] = function(block, generator) {
+        var a = generator.valueToCode(block, 'A', 0) || '0';
+        var b = generator.valueToCode(block, 'B', 0) || '0';
+        var op = block.getFieldValue('OP');
+        return [`(${a} ${op} ${b})`, 0];
+    };
+    generator.forBlock['controls_if_custom'] = function(block, generator) {
+        var condition = generator.valueToCode(block, 'IF0', 0) || 'false';
+        var branch = generator.statementToCode(block, 'DO0');
+        return `  if (${condition}) {\n${branch}  }\n`;
+    };
+
+    // ---------------------------------------------------------
+    // C. TOOLBOX (KATEGORİLİ MENÜ)
+    // ---------------------------------------------------------
+    var toolboxXml = `
+    <xml>
+        <category name="🚀 Temel" colour="120">
+            <block type="arduino_base"></block>
+            <block type="delay_ms"></block>
+            <block type="serial_print">
+                <value name="MSG"><block type="text_string"></block></value>
+            </block>
+            <block type="text_string"></block>
+        </category>
+        
+        <category name="⚡ Çıkışlar" colour="230">
+            <block type="digital_write"></block>
+            <block type="analog_write"></block>
+            <block type="rgb_led"></block>
+            <block type="buzzer_tone"></block>
+        </category>
+
+        <category name="👀 Girişler" colour="180">
+            <block type="digital_read"></block>
+            <block type="analog_read"></block>
+        </category>
+
+        <category name="🌡️ Sensörler" colour="180">
+            <block type="sensor_ultrasonic"></block>
+            <block type="sensor_dht11"></block>
+            <block type="sensor_pir"></block>
+            <block type="sensor_ldr"></block>
+            <block type="sensor_soil"></block>
+            <block type="sensor_rain"></block>
+            <block type="sensor_sound"></block>
+            <block type="sensor_gas"></block>
+        </category>
+
+        <category name="📺 Ekran" colour="60">
+            <block type="lcd_i2c_init"></block>
+            <block type="lcd_i2c_print">
+                <value name="MSG"><block type="text_string"><field name="TXT">Merhaba</field></block></value>
+            </block>
+            <block type="lcd_i2c_clear"></block>
+        </category>
+
+        <category name="⚙️ Motorlar" colour="300">
+            <block type="servo_move"></block>
+        </category>
+
+        <category name="🧠 Mantık" colour="210">
+            <block type="controls_if_custom"></block>
+            <block type="logic_compare_custom"></block>
+            <block type="math_number"></block>
+        </category>
+    </xml>`;
+
+    // ---------------------------------------------------------
+    // D. WORKSPACE OLUŞTURMA
+    // ---------------------------------------------------------
+    workspace = Blockly.inject('blocklyDiv', {
+        toolbox: toolboxXml,
+        trashcan: true,
+        move: { scrollbars: true, drag: true, wheel: true },
+        zoom: { controls: true, wheel: true, startScale: 0.9, maxScale: 3, minScale: 0.3, scaleSpeed: 1.2 },
+        theme: Blockly.Themes.Dark 
+    });
+
+    const startBlock = workspace.newBlock('arduino_base');
+    startBlock.initSvg();
+    startBlock.render();
+    startBlock.moveBy(50, 50);
+
+    workspace.addChangeListener(() => {
+        generator.definitions_ = {}; // Sıfırla
+        generator.setups_ = {}; // Sıfırla
+        const code = generator.workspaceToCode(workspace);
+        document.getElementById('generatedCode').value = code;
+    });
 }
 function transferAndCompile() {
     const code = document.getElementById('generatedCode').value;
